@@ -393,8 +393,14 @@ Quick-reference settings for the smoothest experience on the RTL-SDR V4.
 
 
 
+## License
+
 GPLv3 License — see LICENSE file.  
 RTL-SDR® is a registered trademark of RTL-SDR Blog Ltd.  
 9GRadio is not affiliated with Realtek Semiconductor or RTL-SDR Blog Ltd.  
 Digital voice decoding uses vendored `mbelib-neo` (GPL-2.0-or-later) — see
 `app/src/main/cpp/mbelib-neo/LICENSES/`.
+
+---
+
+© RNK 9G5AR RadioSport
