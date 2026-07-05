@@ -258,6 +258,9 @@ cd 9GRadio
 
 ## File Structure
 
+<details>
+<summary>Click to expand</summary>
+
 ```
 9GRadio/
 ├── app/
@@ -324,6 +327,8 @@ cd 9GRadio
 │           └── drawable/                   # Vector icons
 └── build.gradle / settings.gradle
 ```
+
+</details>
 
 ---
 
