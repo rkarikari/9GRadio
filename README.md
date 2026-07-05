@@ -7,7 +7,7 @@ for the **RTL-SDR V4** dongle (RTL2832U + R828D, 28.8 MHz TCXO).
 **Version:** 1.29
 
 ---
-![9G Files demo](https://raw.githubusercontent.com/rkarikari/9GRadio/main/images/9GRadio.gif)
+![9GRadio](https://github.com/rkarikari/9GRadio/blob/master/images/9GRadio.gif)
 ---
 
 ## Features
