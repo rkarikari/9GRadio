@@ -367,8 +367,9 @@ Quick-reference settings for the smoothest experience on the RTL-SDR V4.
 | **Bias tee** | Off unless powering an LNA/filter | Never enable with passive antennas or direct coax |
 
 ### Digital voice (DMR / D-STAR / YSF / dPMR / NXDN)
-- Use **NFM** channel bandwidth (12.5 kHz) — the discriminator pipeline all digital voice
-  modes share is tuned for this.
+- Leave channel bandwidth and IF settings on their **default** values for each digital voice
+  mode — they're already tuned for the shared discriminator pipeline and don't benefit from
+  manual adjustment.
 - Start on the specific mode tab (**DMR**/**D-STAR**/**YSF**) when you know the protocol —
   it's marginally lighter than **Dig** auto-detect, which keeps trying every known sync word.
 - Use **Dig** for **dPMR**/**NXDN** traffic (and when the protocol is otherwise unknown) —
