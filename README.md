@@ -4,10 +4,8 @@ A complete, production-quality Android SDR application written in Kotlin, purpos
 for the **RTL-SDR V4** dongle (RTL2832U + R828D, 28.8 MHz TCXO).
 
 **Package:** `com.radiosport.ninegradio`  
-**Version:** 1.29
+**Version:** 1.33
 
----
-![9GRadio](https://github.com/rkarikari/9GRadio/blob/master/images/9GRadio.gif)
 ---
 
 ## Features
@@ -30,7 +28,16 @@ for the **RTL-SDR V4** dongle (RTL2832U + R828D, 28.8 MHz TCXO).
 `APRS`
 
 **Digital voice** (12.5 kHz NFM channel, shared discriminator pipeline):  
-`DMR` · `D-STAR` · `YSF` · `Dig` (auto-detect — tries all known sync words and reports back whichever protocol locks)
+`DMR` · `D-STAR` · `YSF` · `dPMR` · `NXDN` — all fully auto-detected and voice-decoded via `Dig`
+(auto-detect — tries all known sync words and reports back whichever protocol locks); `DMR`,
+`D-STAR`, and `YSF` additionally have their own dedicated tabs
+
+Each digital voice tab shows a **Recent Calls** list rather than a raw frame log: consecutive
+frames from the same transmission (same source/destination/talkgroup) are grouped into a single,
+single-line row that updates in place — showing start time, call duration, frame type, IDs,
+talker alias, encryption/emergency flags, and total frame count — instead of one row per frame.
+A new row only appears when a genuinely new call starts (different talker/destination, or the
+same one keying up again after the previous transmission has clearly ended).
 
 ### DSP Engine
 - **GNU Radio Android backend** ([gnuradio-android](https://github.com/bastibl/gnuradio-android)) — when the
@@ -45,9 +52,9 @@ for the **RTL-SDR V4** dongle (RTL2832U + R828D, 28.8 MHz TCXO).
 - **WFM stereo pilot** decoder (19 kHz PLL → 38 kHz subcarrier)
 - **APRS** decoder: AX.25 frame sync, NRZI, bit-stuffing removal, position parsing; optional
   **dual-watch** mode (two simultaneous APRS channels) on device sample rates ≥ ~820 kS/s
-- **DSD-Neo digital voice decoding** (vendored `mbelib-neo`, GPL-2.0): decodes DMR,
-  D-STAR, and YSF voice frames from the NFM discriminator output; `Dig` mode auto-identifies
-  the protocol from its sync word
+- **DSD-Neo digital voice decoding** (vendored `mbelib-neo`, GPL-2.0): decodes DMR, D-STAR,
+  YSF, **dPMR**, and **NXDN** voice frames from the NFM discriminator output; `Dig` mode
+  auto-identifies the protocol from its sync word and decodes voice for all five
 - **Noise blanker** and **noise reducer** (adaptive noise-floor calibration, re-calibrates on
   mode/bandwidth change)
 - Squelch gate with per-mode threshold
@@ -215,9 +222,10 @@ normal Gradle build and activate NEON automatically on ARM devices.
 
 ### DSD-Neo / mbelib-neo
 
-Digital voice decoding (DMR, D-STAR, YSF) is powered by a vendored copy of
-`mbelib-neo` (GPL-2.0-or-later) under `app/src/main/cpp/mbelib-neo/`, built as part of the normal
-NDK build alongside the rest of `app/src/main/cpp/`.
+Digital voice decoding (DMR, D-STAR, YSF, dPMR, and NXDN — the latter two auto-detected
+and decoded via the `Dig` mode) is powered by a vendored copy of `mbelib-neo`
+(GPL-2.0-or-later) under `app/src/main/cpp/mbelib-neo/`, built as part of the normal NDK
+build alongside the rest of `app/src/main/cpp/`.
 
 ### Steps
 
@@ -232,7 +240,7 @@ cd 9GRadio
 ./gradlew installDebug
 
 # Build release APK (requires signing config)
-# Output: app/build/outputs/apk/release/9GRadio_v1.29_release.apk
+# Output: app/build/outputs/apk/release/9GRadio_v1.33_release.apk
 ./gradlew assembleRelease
 ```
 
@@ -274,7 +282,7 @@ cd 9GRadio
 │       │   │   ├── DemodMode.kt            # Mode enum + intelligent per-mode defaults
 │       │   │   ├── Demodulators.kt         # AM, FM, WFM, SSB, CW, DSB, RAW
 │       │   │   ├── DigitalFrameFilter.kt   # Digital voice frame post-processing
-│       │   │   ├── DigitalVoiceDecoder.kt  # DMR/D-STAR/YSF decoder
+│       │   │   ├── DigitalVoiceDecoder.kt  # DMR/D-STAR/YSF/dPMR/NXDN decoder
 │       │   │   ├── DsdccNative.kt          # JNI wrapper for dsdcc/mbelib-neo
 │       │   │   ├── DspEngine.kt            # Main DSP pipeline
 │       │   │   ├── FftEngine.kt            # FFT + windowing + frame averaging
@@ -339,7 +347,41 @@ index 20–26 (~30–45 dB). For strong local FM, reduce to 0–5 to avoid ADC s
 
 ---
 
-## License
+## User Guide: Optimal Settings for High Performance
+
+Quick-reference settings for the smoothest experience on the RTL-SDR V4.
+
+| Setting | Recommended | Why |
+|---|---|---|
+| **Sample rate** | 2.048 or 2.4 MS/s for general monitoring; drop to 912 kS/s–1.024 MS/s on older/slower devices | Balances spectrum width against CPU load; VOLK/NEON handles these rates smoothly on most phones |
+| **PPM correction** | 0 | The V4's TCXO is already ±1 ppm accurate — added correction only helps if you've calibrated against a known reference |
+| **Gain** | AGC for general use; manual 20–26 (~30–45 dB) for weak-signal HF/satellite work; 0–5 for strong local FM | Prevents ADC saturation on strong signals while keeping enough gain for weak ones |
+| **FFT size** | 2048 | Sweet spot between frequency resolution and render cost; raise to 4096+ only for detailed narrowband analysis |
+| **Frame averaging** | ×8 | Cuts displayed noise floor by up to ~15 dB with negligible added latency |
+| **FFT decimation** | Leave on auto (per-mode default) | Digital voice/NFM narrows to ÷8–÷32 automatically for a cleaner, lower-noise view without hand-tuning |
+| **Noise blanker / reducer** | On only if you have impulsive/broadband noise (ignition, switching PSUs) | Adds CPU overhead; skip it on a clean RF environment |
+| **Bias tee** | Off unless powering an LNA/filter | Never enable with passive antennas or direct coax |
+
+### Digital voice (DMR / D-STAR / YSF / dPMR / NXDN)
+- Use **NFM** channel bandwidth (12.5 kHz) — the discriminator pipeline all digital voice
+  modes share is tuned for this.
+- Start on the specific mode tab (**DMR**/**D-STAR**/**YSF**) when you know the protocol —
+  it's marginally lighter than **Dig** auto-detect, which keeps trying every known sync word.
+- Use **Dig** for **dPMR**/**NXDN** traffic (and when the protocol is otherwise unknown) —
+  these are fully auto-detected and voice-decoded, they just don't have their own dedicated tab.
+- Set squelch just above the noise floor — the Recent Calls list groups frames into one row
+  per transmission using a timing gap, so a squelch that's chattering open/closed on noise can
+  fragment a single real call into several separate rows.
+
+### Background recording / unattended monitoring
+- Enable the **foreground service** wake-lock to survive screen-off.
+- Cap IQ recordings with the **2 GB auto-split** to avoid single giant files.
+- Prefer `.iq.gz` over raw `.iq` if storage is limited — GZip typically halves file size on
+  narrowband captures with only a small CPU cost.
+
+---
+
+
 
 GPLv3 License — see LICENSE file.  
 RTL-SDR® is a registered trademark of RTL-SDR Blog Ltd.  
