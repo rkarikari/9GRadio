@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Night mode — app is always dark so these match the base theme exactly -->
+<resources>
+    <style name="Theme.NineGRadio" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowBackground">@color/bgMain</item>
+        <item name="android:colorBackground">@color/bgMain</item>
+        <item name="colorSurface">@color/bgSurface</item>
+        <item name="colorOnSurface">@color/textPrimary</item>
+    </style>
+</resources>

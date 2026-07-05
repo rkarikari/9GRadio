@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  HISTORY: this file used to whitelist plain HTTP (cleartext) traffic to
+  "pizzanbeer.net" / "pizzanbear.net" — an unofficial third-party host that
+  an old vocoder-plugin loader used to download an external AMBE vocoder
+  plugin from at runtime.
+
+  FIX: the vocoder is no longer a runtime download — app/src/main/cpp/
+  dsd_neo.cpp is statically linked against a vendored copy of mbelib-neo
+  (see app/src/main/cpp/mbelib-neo), matching how
+  https://github.com/SarahRoseLives/Pocket25 bundles its own DSD-Neo build.
+  The external vocoder-plugin loader has been removed entirely, so there is
+  no cleartext exception to grant. All traffic in the app now follows the
+  Android default: HTTPS only.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

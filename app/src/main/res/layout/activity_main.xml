@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0D1117">
+
+    <!-- Toolbar -->
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="#161B22"
+            app:titleTextColor="#CCFFFFFF">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/statusIndicator"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_disconnected"
+                    android:layout_marginEnd="8dp" />
+
+                <TextView
+                    android:id="@+id/tvDeviceName"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Not Connected"
+                    android:textColor="#AAFFFFFF"
+                    android:textSize="13sp" />
+
+                <ProgressBar
+                    android:id="@+id/progressConnect"
+                    style="?android:attr/progressBarStyleSmall"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </androidx.appcompat.widget.Toolbar>
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- Main content: fills space above the bottom sheet peek -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <!-- Status bar: Demod, Rate, Signal -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="36dp"
+            android:background="#161B22"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="12dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvDemodMode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="NFM"
+                android:textColor="#00CCFF"
+                android:textSize="13sp"
+                android:fontFamily="monospace"
+                android:background="#22004488"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="2dp"/>
+
+            <View android:layout_width="12dp" android:layout_height="1dp"/>
+
+            <TextView
+                android:id="@+id/tvSampleRate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="2.048 MS/s"
+                android:textColor="#88FFFFFF"
+                android:textSize="12sp"
+                android:fontFamily="monospace"/>
+
+            <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1"/>
+
+            <!-- Squelch status -->
+            <TextView
+                android:id="@+id/tvSquelchStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="CLOSED"
+                android:textSize="11sp"
+                android:textColor="#FF4444"
+                android:fontFamily="monospace"/>
+
+            <View android:layout_width="12dp" android:layout_height="1dp"/>
+
+            <!-- Signal meter -->
+            <ProgressBar
+                android:id="@+id/signalMeter"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="80dp"
+                android:layout_height="10dp"
+                android:max="100"
+                android:progress="0"
+                android:progressTint="#00FF44"
+                android:progressBackgroundTint="#224400"/>
+
+            <TextView
+                android:id="@+id/tvSignalDb"
+                android:layout_width="70dp"
+                android:layout_height="wrap_content"
+                android:text="-120 dBFS"
+                android:textColor="#88FFFFFF"
+                android:textSize="11sp"
+                android:fontFamily="monospace"
+                android:gravity="end"
+                android:layout_marginStart="6dp"/>
+        </LinearLayout>
+
+        <!-- Frequency view -->
+        <com.radiosport.ninegradio.ui.FrequencyView
+            android:id="@+id/frequencyView"
+            android:layout_width="match_parent"
+            android:layout_height="72dp"
+            android:background="#0D1117"/>
+
+        <!-- Freq step buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="32dp"
+            android:orientation="horizontal"
+            android:background="#0D1117">
+
+            <Button
+                android:id="@+id/btnFreqDown"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="80dp"
+                android:layout_height="match_parent"
+                android:text="◀  −"
+                android:textColor="#0088CC"
+                android:textSize="16sp"/>
+
+            <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1"/>
+
+            <Button
+                android:id="@+id/btnFreqUp"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="80dp"
+                android:layout_height="match_parent"
+                android:text="+  ▶"
+                android:textColor="#0088CC"
+                android:textSize="16sp"/>
+        </LinearLayout>
+
+        <!-- Spectrum view -->
+        <com.radiosport.ninegradio.ui.SpectrumView
+            android:id="@+id/spectrumView"
+            android:layout_width="match_parent"
+            android:layout_height="160dp"
+            android:background="#0D1117"/>
+
+        <!-- Waterfall view: takes remaining space above the bottom sheet peek -->
+        <com.radiosport.ninegradio.ui.WaterfallView
+            android:id="@+id/waterfallView"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="#000000"/>
+
+    </LinearLayout>
+
+    <!-- Controls Bottom Sheet
+         The direct child is a plain LinearLayout (not NestedScrollView) so the
+         drag handle and TabLayout sit OUTSIDE the scrollable region and therefore
+         never scroll out of view.  Only the ViewPager2 content (inside the inner
+         NestedScrollView) scrolls.
+
+         BottomSheetBehavior works on any View as its direct child; it cooperates
+         with NestedScrolling by intercepting scroll events that bubble up from the
+         inner NestedScrollView through the LinearLayout.
+
+         peekHeight = drag handle (12dp total) + TabLayout (44dp) + nav-bar inset.
+         This is identical to before — the tab bar is always the topmost visible
+         element when the sheet is collapsed. -->
+    <LinearLayout
+        android:id="@+id/controlsBottomSheet"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="#161B22"
+        android:elevation="8dp"
+        app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
+        app:behavior_peekHeight="100dp"
+        app:behavior_hideable="false">
+
+        <!-- Drag handle — always visible -->
+        <View
+            android:layout_width="40dp"
+            android:layout_height="4dp"
+            android:layout_gravity="center_horizontal"
+            android:background="#44FFFFFF"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="2dp"/>
+
+        <!-- Tab bar — always visible, never scrolls away -->
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/controlTabLayout"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:background="#0D1117"
+            app:tabMode="fixed"
+            app:tabGravity="fill"
+            app:tabTextColor="#667788"
+            app:tabSelectedTextColor="#00CCFF"
+            app:tabIndicatorColor="#00CCFF"
+            app:tabIndicatorHeight="3dp"
+            app:tabTextAppearance="@android:style/TextAppearance.Small"/>
+
+        <!-- Scrollable content region — only this part scrolls -->
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/controlsScrollView"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- Paged tab content -->
+                <androidx.viewpager2.widget.ViewPager2
+                    android:id="@+id/controlViewPager"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"/>
+
+                <!-- No static bottom spacer here: nav-bar clearance is added
+                     dynamically as controlsScrollView's paddingBottom in
+                     MainActivity#applyExpandedOffset (expandedOffset +
+                     navBarHeightPx). A fixed spacer stacked on top of that
+                     dynamic padding would double the trailing clearance,
+                     letting the sheet scroll past the last real control into
+                     empty, unpopulated space. Keep the ViewPager2 as this
+                     container's last child so max-scroll always lands
+                     exactly where the last control comes into view. -->
+
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+
+    </LinearLayout>
+
+    <!-- FABs -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabBookmark"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginBottom="160dp"
+        android:layout_marginEnd="16dp"
+        android:src="@drawable/ic_bookmark"
+        app:backgroundTint="#FFAA00"
+        app:fabSize="mini"/>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabScan"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginBottom="210dp"
+        android:layout_marginEnd="16dp"
+        android:src="@drawable/ic_scan"
+        app:backgroundTint="#44FF88"
+        app:fabSize="mini"/>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="8dp"
+    android:background="@android:color/transparent">
+
+    <!-- Row 1: timestamp · label badge · registration · flight ID -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <!-- Timestamp -->
+        <TextView
+            android:id="@+id/tvMsgTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="00:00:00"
+            android:textColor="#446688"
+            android:textSize="11sp"
+            android:fontFamily="monospace"
+            android:layout_marginEnd="8dp"/>
+
+        <!-- Label badge -->
+        <TextView
+            android:id="@+id/tvMsgLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="H1"
+            android:textColor="#FFFFFF"
+            android:textSize="10sp"
+            android:fontFamily="monospace"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="2dp"
+            android:background="#33004488"
+            android:layout_marginEnd="8dp"/>
+
+        <!-- Registration -->
+        <TextView
+            android:id="@+id/tvMsgReg"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="N12345"
+            android:textColor="#00EEFF"
+            android:textSize="13sp"
+            android:fontFamily="monospace"
+            android:layout_marginEnd="8dp"/>
+
+        <!-- Flight ID (optional) -->
+        <TextView
+            android:id="@+id/tvMsgFlight"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text=""
+            android:textColor="#FFDD44"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:ellipsize="end"
+            android:singleLine="true"/>
+
+        <!-- ACK indicator -->
+        <TextView
+            android:id="@+id/tvMsgAck"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#44FF88"
+            android:textSize="10sp"
+            android:fontFamily="monospace"/>
+
+    </LinearLayout>
+
+    <!-- Row 2: label description -->
+    <TextView
+        android:id="@+id/tvMsgLabelDesc"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="#557799"
+        android:textSize="10sp"
+        android:fontFamily="monospace"
+        android:layout_marginTop="1dp"/>
+
+    <!-- Row 3: message body -->
+    <TextView
+        android:id="@+id/tvMsgText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="#CCDDEE"
+        android:textSize="12sp"
+        android:fontFamily="monospace"
+        android:maxLines="3"
+        android:ellipsize="end"
+        android:layout_marginTop="3dp"/>
+
+</LinearLayout>

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Layout for RtlSdrTestActivity.kt — was missing from the project (the
+  Activity referenced R.layout.activity_rtlsdr_test and five view IDs that
+  had no corresponding layout resource anywhere in res/layout, which fails
+  Kotlin compilation since the R class never generates those references).
+  This activity is also not yet wired up to any menu/Intent in the app
+  (despite its doc comment) — that's a separate, pre-existing gap; this
+  file only restores buildability.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#0D1117">
+
+    <!-- Summary line -->
+    <TextView
+        android:id="@+id/tvTestSummary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:text=""
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:background="#161B22" />
+
+    <!-- Run / Clear buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:background="#161B22">
+
+        <Button
+            android:id="@+id/btnRunTests"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            android:text="Run Tests"
+            android:textColor="#0D1117"
+            android:backgroundTint="#00CCFF" />
+
+        <Button
+            android:id="@+id/btnClearLog"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:text="Clear Log"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#21262D" />
+    </LinearLayout>
+
+    <!-- Scrolling log output -->
+    <ScrollView
+        android:id="@+id/testScrollView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="8dp">
+
+        <TextView
+            android:id="@+id/tvTestLog"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textColor="#AAFFFFFF"
+            android:textSize="11sp"
+            android:textIsSelectable="true" />
+    </ScrollView>
+
+</LinearLayout>

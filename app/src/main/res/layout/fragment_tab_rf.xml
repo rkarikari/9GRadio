@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tab 1 – RF: Gain, Squelch, Volume, Bandwidth, Noise, V4 features -->
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:scrollbars="vertical">
+
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingTop="8dp"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingBottom="12dp">
+
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="RF Controls" android:textColor="#00CCFF" android:textSize="13sp"
+        android:textAllCaps="true" android:letterSpacing="0.1" android:layout_marginBottom="8dp"/>
+
+    <!-- Gain -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical">
+        <TextView android:layout_width="80dp" android:layout_height="wrap_content"
+            android:text="Gain" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+        <com.google.android.material.slider.Slider
+            android:id="@+id/sliderGain"
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:valueFrom="0" android:valueTo="28" android:value="0"
+            android:stepSize="1"
+            app:thumbColor="#00CCFF" app:trackColorActive="#00CCFF"
+            app:labelBehavior="floating"
+            xmlns:app="http://schemas.android.com/apk/res-auto"/>
+        <TextView android:id="@+id/tvGainValue"
+            android:layout_width="70dp" android:layout_height="wrap_content"
+            android:text="0.0 dB" android:textColor="#00CCFF" android:textSize="12sp"
+            android:gravity="end" android:fontFamily="monospace"/>
+    </LinearLayout>
+
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="Manual: 0.0 – 49.6 dB (29 steps)"
+        android:textColor="#66FFFFFF" android:textSize="10sp"
+        android:paddingStart="80dp" android:layout_marginBottom="2dp"/>
+
+    <!-- Tuner AGC -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="4dp">
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Tuner AGC" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="LNA/Mixer auto gain (disables slider)"
+                android:textColor="#66FFFFFF" android:textSize="10sp"/>
+        </LinearLayout>
+        <Switch android:id="@+id/switchTunerAgc"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:checked="true"/>
+    </LinearLayout>
+
+    <!-- Hardware AGC -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="4dp">
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Hardware AGC" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="RTL2832U digital IF auto gain"
+                android:textColor="#66FFFFFF" android:textSize="10sp"/>
+        </LinearLayout>
+        <Switch android:id="@+id/switchHardwareAgc"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:checked="true"/>
+    </LinearLayout>
+
+    <!-- Squelch -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="4dp">
+        <TextView android:layout_width="80dp" android:layout_height="wrap_content"
+            android:text="Squelch" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+        <com.google.android.material.slider.Slider
+            android:id="@+id/sliderSquelch"
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:valueFrom="-120" android:valueTo="0" android:value="-100"
+            app:thumbColor="#FFAA00" app:trackColorActive="#FFAA00"
+            xmlns:app="http://schemas.android.com/apk/res-auto"/>
+        <TextView android:id="@+id/tvSquelchValue"
+            android:layout_width="60dp" android:layout_height="wrap_content"
+            android:text="-100 dB" android:textColor="#FFAA00" android:textSize="12sp"
+            android:gravity="end" android:fontFamily="monospace"/>
+    </LinearLayout>
+
+    <!-- Volume -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="4dp">
+        <TextView android:layout_width="80dp" android:layout_height="wrap_content"
+            android:text="Volume" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+        <com.google.android.material.slider.Slider
+            android:id="@+id/sliderVolume"
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:valueFrom="0" android:valueTo="2" android:value="1"
+            app:thumbColor="#44FF88" app:trackColorActive="#44FF88"
+            xmlns:app="http://schemas.android.com/apk/res-auto"/>
+        <TextView android:id="@+id/tvVolumeValue"
+            android:layout_width="60dp" android:layout_height="wrap_content"
+            android:text="100%" android:textColor="#44FF88" android:textSize="12sp"
+            android:gravity="end" android:fontFamily="monospace"/>
+    </LinearLayout>
+
+    <View android:layout_width="match_parent" android:layout_height="1dp"
+        android:background="#33FFFFFF" android:layout_marginVertical="12dp"/>
+
+    <!-- Protocol Filter / IF Bandwidth -->
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="Protocol Filter"
+        android:textColor="#00CCFF" android:textSize="13sp" android:textAllCaps="true"
+        android:letterSpacing="0.1" android:layout_marginBottom="4dp"/>
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="Adjusts the IF bandwidth before demodulation. Steps follow radio conventions: 100–800 Hz for CW, 1–3.6 kHz for SSB, 4–200 kHz for AM/NFM/WFM."
+        android:textColor="#66FFFFFF" android:textSize="10sp" android:layout_marginBottom="8dp"/>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical">
+        <TextView android:layout_width="80dp" android:layout_height="wrap_content"
+            android:text="Width" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+        <com.google.android.material.slider.Slider
+            android:id="@+id/sliderIfBandwidth"
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:valueFrom="0" android:valueTo="29" android:value="14"
+            android:stepSize="1"
+            app:thumbColor="#FF44CC" app:trackColorActive="#FF44CC"
+            xmlns:app="http://schemas.android.com/apk/res-auto"/>
+        <TextView android:id="@+id/tvIfBandwidthValue"
+            android:layout_width="60dp" android:layout_height="wrap_content"
+            android:text="Auto" android:textColor="#FF44CC" android:textSize="12sp"
+            android:gravity="end" android:fontFamily="monospace"/>
+    </LinearLayout>
+
+    <View android:layout_width="match_parent" android:layout_height="1dp"
+        android:background="#33FFFFFF" android:layout_marginVertical="12dp"/>
+
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="Noise Processing"
+        android:textColor="#00CCFF" android:textSize="13sp" android:textAllCaps="true"
+        android:letterSpacing="0.1" android:layout_marginBottom="8dp"/>
+
+    <!-- Noise Blanker -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="4dp">
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Noise Blanker" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Suppress impulsive noise (ignition / power-line clicks)"
+                android:textColor="#66FFFFFF" android:textSize="10sp"/>
+        </LinearLayout>
+        <Switch android:id="@+id/switchNoiseBlanker"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:checked="false"/>
+    </LinearLayout>
+
+    <!-- Noise Reducer -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="4dp">
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Noise Reducer" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Spectral subtraction broadband NR (auto-calibrates)"
+                android:textColor="#66FFFFFF" android:textSize="10sp"/>
+        </LinearLayout>
+        <Switch android:id="@+id/switchNoiseReducer"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:checked="false"/>
+    </LinearLayout>
+
+    <View android:layout_width="match_parent" android:layout_height="1dp"
+        android:background="#33FFFFFF" android:layout_marginVertical="12dp"/>
+
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="V4 Specific Features"
+        android:textColor="#FF6600" android:textSize="13sp" android:textAllCaps="true"
+        android:letterSpacing="0.1" android:layout_marginBottom="8dp"/>
+
+    <!-- Bias Tee -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical">
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:text="Bias Tee (5V antenna)"
+            android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+        <Switch android:id="@+id/switchBiasTee"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:checked="false"/>
+    </LinearLayout>
+
+    <!-- Direct Sampling -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="8dp">
+        <TextView android:layout_width="120dp" android:layout_height="wrap_content"
+            android:text="Direct Sampling" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+        <Spinner android:id="@+id/spinnerDirectSampling"
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:backgroundTint="#00CCFF"/>
+    </LinearLayout>
+
+    <!-- PPM -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="8dp">
+        <TextView android:layout_width="80dp" android:layout_height="wrap_content"
+            android:text="PPM" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+        <com.google.android.material.slider.Slider
+            android:id="@+id/sliderPpm"
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:valueFrom="-50" android:valueTo="50" android:value="0"
+            android:stepSize="1"
+            app:thumbColor="#00CCFF" app:trackColorActive="#00CCFF"
+            xmlns:app="http://schemas.android.com/apk/res-auto"/>
+        <TextView android:id="@+id/tvPpmValue"
+            android:layout_width="60dp" android:layout_height="wrap_content"
+            android:text="0 ppm" android:textColor="#00CCFF" android:textSize="12sp"
+            android:gravity="end" android:fontFamily="monospace"/>
+    </LinearLayout>
+
+    <!-- Sample Rate -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:layout_marginTop="8dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:layout_width="120dp" android:layout_height="wrap_content"
+                android:text="Sample Rate" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+            <TextView android:id="@+id/tvSampleRateLabel"
+                android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="#00CCFF" android:textSize="13sp"
+                android:fontFamily="monospace" android:gravity="end"/>
+        </LinearLayout>
+        <HorizontalScrollView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="6dp" android:scrollbars="none"
+            android:fadingEdge="horizontal" android:requiresFadingEdge="horizontal"
+            android:fadingEdgeLength="24dp">
+            <LinearLayout android:id="@+id/layoutSampleRateChips"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:gravity="center_vertical"/>
+        </HorizontalScrollView>
+    </LinearLayout>
+
+    <!-- Audio Sink Rate -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:layout_marginTop="10dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:layout_width="120dp" android:layout_height="wrap_content"
+                android:text="Audio Out Rate" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+            <TextView android:id="@+id/tvAudioSinkRateLabel"
+                android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="#00CCFF" android:textSize="13sp"
+                android:fontFamily="monospace" android:gravity="end"/>
+        </LinearLayout>
+        <HorizontalScrollView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="6dp" android:scrollbars="none"
+            android:fadingEdge="horizontal" android:requiresFadingEdge="horizontal"
+            android:fadingEdgeLength="24dp">
+            <LinearLayout android:id="@+id/layoutAudioSinkRateChips"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:gravity="center_vertical"/>
+        </HorizontalScrollView>
+    </LinearLayout>
+
+</LinearLayout>
+
+</ScrollView>

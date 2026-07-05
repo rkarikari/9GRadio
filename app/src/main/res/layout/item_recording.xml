@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:background="#1C2128"
+    android:padding="12dp"
+    android:gravity="center_vertical"
+    android:layout_marginBottom="1dp">
+
+    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+        android:layout_weight="1" android:orientation="vertical">
+
+        <TextView android:id="@+id/tvRecName"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="recording.iq" android:textColor="#FFFFFF"
+            android:textSize="14sp" android:fontFamily="monospace"/>
+
+        <TextView android:id="@+id/tvRecInfo"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="100.000 MHz  NFM  2048 kS/s"
+            android:textColor="#00CCFF" android:textSize="12sp"
+            android:fontFamily="monospace" android:layout_marginTop="2dp"/>
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginTop="2dp">
+            <TextView android:id="@+id/tvRecDate"
+                android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:text="[IQ] 2024-01-01 12:00"
+                android:textColor="#88FFFFFF" android:textSize="11sp"/>
+            <TextView android:id="@+id/tvRecSize"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="12.5 MB" android:textColor="#FFAA00"
+                android:textSize="11sp" android:fontFamily="monospace"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <ImageButton android:id="@+id/btnRecPlay"
+        android:layout_width="36dp" android:layout_height="36dp"
+        android:src="@android:drawable/ic_media_play"
+        android:background="?selectableItemBackgroundBorderless"
+        android:tint="#44FF88" android:layout_marginStart="4dp"/>
+
+    <ImageButton android:id="@+id/btnRecShare"
+        android:layout_width="36dp" android:layout_height="36dp"
+        android:src="@android:drawable/ic_menu_share"
+        android:background="?selectableItemBackgroundBorderless"
+        android:tint="#00CCFF" android:layout_marginStart="4dp"/>
+
+    <ImageButton android:id="@+id/btnRecDelete"
+        android:layout_width="36dp" android:layout_height="36dp"
+        android:src="@android:drawable/ic_menu_delete"
+        android:background="?selectableItemBackgroundBorderless"
+        android:tint="#FF4444" android:layout_marginStart="4dp"/>
+</LinearLayout>

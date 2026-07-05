@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- IQ recordings in app-specific external storage -->
+    <external-files-path
+        name="iq_recordings"
+        path="IQ/" />
+    <!-- Audio recordings -->
+    <external-files-path
+        name="audio_recordings"
+        path="Audio/" />
+    <!-- Exported settings/channels JSON -->
+    <external-files-path
+        name="exports"
+        path="Exports/" />
+    <!-- General external files -->
+    <external-files-path
+        name="external_files"
+        path="." />
+    <!-- Internal cache for temporary exports -->
+    <cache-path
+        name="cache"
+        path="." />
+</paths>

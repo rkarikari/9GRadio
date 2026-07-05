@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#0D1117"
+    android:padding="16dp">
+
+    <!-- Config section -->
+    <ScrollView android:layout_width="match_parent" android:layout_height="0dp"
+        android:layout_weight="1">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="Scan Range (MHz)" android:textColor="#00CCFF" android:textSize="13sp"
+                android:layout_marginBottom="8dp"/>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:hint="Start MHz"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_marginEnd="8dp">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etScanStart"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:inputType="numberDecimal" android:text="136.0"
+                        android:textColor="#FFFFFF" android:fontFamily="monospace"/>
+                </com.google.android.material.textfield.TextInputLayout>
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:hint="Stop MHz"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etScanStop"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:inputType="numberDecimal" android:text="174.0"
+                        android:textColor="#FFFFFF" android:fontFamily="monospace"/>
+                </com.google.android.material.textfield.TextInputLayout>
+            </LinearLayout>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:layout_marginTop="8dp">
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:hint="Step Hz"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_marginEnd="8dp">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etScanStep"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:inputType="number" android:text="12500"
+                        android:textColor="#FFFFFF" android:fontFamily="monospace"/>
+                </com.google.android.material.textfield.TextInputLayout>
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:hint="Squelch dB"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etScanSquelch"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:inputType="numberSigned" android:text="-80"
+                        android:textColor="#FFFFFF" android:fontFamily="monospace"/>
+                </com.google.android.material.textfield.TextInputLayout>
+            </LinearLayout>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:layout_marginTop="8dp">
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:hint="Dwell ms"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_marginEnd="8dp">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etScanDwell"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:inputType="number" android:text="200"
+                        android:textColor="#FFFFFF" android:fontFamily="monospace"/>
+                </com.google.android.material.textfield.TextInputLayout>
+                <Spinner android:id="@+id/spinnerScanMode"
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:backgroundTint="#00CCFF"/>
+            </LinearLayout>
+
+            <!-- Scan direction switch -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:layout_marginTop="12dp">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:text="Scan Direction: Down"
+                    android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+                <Switch android:id="@+id/switchScanDirection"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+            </LinearLayout>
+
+            <!-- Control buttons -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:layout_marginTop="16dp">
+                <Button android:id="@+id/btnScanStartStop"
+                    android:layout_width="0dp" android:layout_height="48dp"
+                    android:layout_weight="1" android:text="Start Scan"
+                    android:backgroundTint="#00CC44" android:textColor="#000000"
+                    android:layout_marginEnd="8dp"/>
+                <Button android:id="@+id/btnScanPause"
+                    android:layout_width="0dp" android:layout_height="48dp"
+                    android:layout_weight="1" android:text="Pause"
+                    android:backgroundTint="#FFAA00" android:textColor="#000000"
+                    android:visibility="gone"/>
+            </LinearLayout>
+
+            <!-- Progress -->
+            <ProgressBar android:id="@+id/progressScan"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent" android:layout_height="8dp"
+                android:layout_marginTop="12dp"
+                android:progressTint="#00CCFF" android:max="100"
+                android:visibility="gone"/>
+
+            <!-- Status -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:layout_marginTop="8dp">
+                <TextView android:id="@+id/tvScanCurrentFreq"
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:text="---"
+                    android:textColor="#00CCFF" android:textSize="16sp"
+                    android:fontFamily="monospace"/>
+                <TextView android:id="@+id/tvScanSignal"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="--- dB" android:textColor="#44FF88"
+                    android:textSize="14sp" android:fontFamily="monospace"
+                    android:layout_marginEnd="16dp"/>
+                <TextView android:id="@+id/tvScanHits"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Hits: 0" android:textColor="#FFAA00"
+                    android:textSize="14sp" android:fontFamily="monospace"/>
+            </LinearLayout>
+
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="Active Frequencies (tap to tune):"
+                android:textColor="#88FFFFFF" android:textSize="12sp"
+                android:layout_marginTop="12dp" android:layout_marginBottom="4dp"/>
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Hit log -->
+    <ListView android:id="@+id/listScanHits"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#161B22"
+        android:divider="#33FFFFFF"
+        android:dividerHeight="0.5dp"/>
+
+</LinearLayout>

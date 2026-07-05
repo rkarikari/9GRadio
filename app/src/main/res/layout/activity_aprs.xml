@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="#0A1520">
+
+    <!-- Status row -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="40dp"
+        android:background="#0D1117" android:gravity="center_vertical"
+        android:paddingHorizontal="12dp" android:orientation="horizontal">
+        <TextView android:id="@+id/tvAprsStatus"
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:text="Listening…"
+            android:textColor="#44FF88" android:textSize="13sp" android:fontFamily="monospace"/>
+        <TextView android:id="@+id/tvAprsCount"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Packets: 0" android:textColor="#FFAA00"
+            android:textSize="13sp" android:fontFamily="monospace"/>
+    </LinearLayout>
+
+    <!-- Frequency buttons -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="44dp"
+        android:orientation="horizontal" android:background="#161B22">
+        <Button android:id="@+id/btnAprsNA"
+            android:layout_width="0dp" android:layout_height="match_parent"
+            android:layout_weight="1" android:text="NA 144.390 MHz"
+            android:backgroundTint="#22004488" android:textColor="#00CCFF"
+            android:textSize="12sp" android:layout_marginEnd="1dp"/>
+        <Button android:id="@+id/btnAprsEU"
+            android:layout_width="0dp" android:layout_height="match_parent"
+            android:layout_weight="1" android:text="EU 144.800 MHz"
+            android:backgroundTint="#22004488" android:textColor="#00CCFF"
+            android:textSize="12sp"/>
+    </LinearLayout>
+
+    <!-- Mode / dual-watch indicator -->
+    <TextView android:id="@+id/tvAprsMode"
+        android:layout_width="match_parent" android:layout_height="28dp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="12dp"
+        android:background="#0D1117"
+        android:text="Initialising…"
+        android:textColor="#8899AA"
+        android:textSize="11sp"
+        android:fontFamily="monospace"
+        android:singleLine="true"
+        android:ellipsize="end"/>
+
+    <!-- APRS map -->
+    <com.radiosport.ninegradio.ui.AprsMapView
+        android:id="@+id/aprsMapView"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:background="#0A1520"/>
+
+    <!-- Packet log -->
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="Packet Log (tap for details):"
+        android:textColor="#88FFFFFF" android:textSize="12sp"
+        android:paddingHorizontal="12dp" android:paddingVertical="4dp"
+        android:background="#161B22"/>
+
+    <ListView android:id="@+id/listAprsPackets"
+        android:layout_width="match_parent" android:layout_height="0dp"
+        android:layout_weight="1" android:background="#0D1117"
+        android:divider="#22FFFFFF" android:dividerHeight="0.5dp"/>
+
+</LinearLayout>

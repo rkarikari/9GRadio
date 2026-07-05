@@ -1,0 +1,482 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <!-- ─── RF / Tuner ─────────────────────────────────────────────────── -->
+    <PreferenceCategory android:title="RF / Tuner" android:key="cat_rf">
+
+        <ListPreference
+            android:key="pref_sample_rate"
+            android:title="Default Sample Rate"
+            android:summary="Bandwidth of IQ capture"
+            android:defaultValue="1920000"
+            android:dialogTitle="Select Sample Rate"
+            android:entries="@array/sample_rate_entries"
+            android:entryValues="@array/sample_rate_values"/>
+
+        <SeekBarPreference
+            android:key="pref_ppm"
+            android:title="PPM Correction"
+            android:summary="Frequency offset compensation (TCXO ≈ 0)"
+            android:defaultValue="0"
+            app:min="-50"
+            android:max="50"
+            app:showSeekBarValue="true"/>
+
+        <ListPreference
+            android:key="pref_default_demod"
+            android:title="Default Demod Mode"
+            android:summary="Mode loaded at startup"
+            android:defaultValue="NFM"
+            android:dialogTitle="Select Demodulation Mode"/>
+
+        <SwitchPreferenceCompat
+            android:key="pref_tuner_agc_default"
+            android:title="Tuner AGC by Default"
+            android:summary="R82xx LNA/Mixer auto gain (controls manual gain slider)"
+            android:defaultValue="false"/>
+
+        <SwitchPreferenceCompat
+            android:key="pref_hardware_agc_default"
+            android:title="Hardware AGC by Default"
+            android:summary="RTL2832U digital IF auto gain (independent of tuner AGC)"
+            android:defaultValue="false"/>
+
+        <SeekBarPreference
+            android:key="pref_default_gain"
+            android:title="Default Manual Gain"
+            android:summary="0.0 – 49.6 dB (29 steps) when Tuner AGC is off"
+            android:defaultValue="26"
+            app:min="0"
+            android:max="28"
+            app:showSeekBarValue="true"/>
+
+        <SeekBarPreference
+            android:key="pref_squelch_default"
+            android:title="Default Squelch Level"
+            android:summary="dBFS threshold (−120 = always open)"
+            android:defaultValue="100"
+            app:min="0"
+            android:max="120"
+            app:showSeekBarValue="true"/>
+    </PreferenceCategory>
+
+    <!-- ─── 9GRadio Hardware Specific ──────────────────────────────────── -->
+    <PreferenceCategory android:title="9GRadio Hardware Features" android:key="cat_v4">
+
+        <SwitchPreferenceCompat
+            android:key="pref_bias_tee_default"
+            android:title="Bias Tee Default State"
+            android:summary="Supply 5V on antenna port (for powered LNAs)"
+            android:defaultValue="false"/>
+
+        <ListPreference
+            android:key="pref_direct_sampling_default"
+            android:title="Default Direct Sampling"
+            android:summary="For HF reception below 28.8 MHz"
+            android:entries="@array/direct_sampling_entries"
+            android:entryValues="@array/direct_sampling_values"
+            android:defaultValue="0"/>
+
+        <SwitchPreferenceCompat
+            android:key="pref_auto_hf"
+            android:title="Auto-Switch HF Mode"
+            android:summary="Automatically enable Q-branch below 28.8 MHz"
+            android:defaultValue="true"/>
+
+        <EditTextPreference
+            android:key="pref_tcxo_freq"
+            android:title="XTAL Frequency"
+            android:summary="28800000 Hz for V4 TCXO (do not change)"
+            android:defaultValue="28800000"
+            android:inputType="number"/>
+    </PreferenceCategory>
+
+    <!-- ─── Display ───────────────────────────────────────────────────── -->
+    <PreferenceCategory android:title="Display" android:key="cat_display">
+
+        <ListPreference
+            android:key="pref_fft_size"
+            android:title="FFT Size"
+            android:summary="Larger = better frequency resolution"
+            android:entries="@array/fft_size_entries"
+            android:entryValues="@array/fft_size_values"
+            android:defaultValue="256"/>
+
+        <ListPreference
+            android:key="pref_decimation"
+            android:title="FFT Decimation"
+            android:summary="Narrow displayed bandwidth for higher frequency resolution (÷ sample rate)"
+            android:entries="@array/decimation_entries"
+            android:entryValues="@array/decimation_values"
+            android:defaultValue="64"
+            android:dialogTitle="Select Decimation Factor"/>
+
+        <ListPreference
+            android:key="pref_fft_window"
+            android:title="FFT Window Function"
+            android:summary="Window applied to IQ before FFT"
+            android:entries="@array/fft_window_entries"
+            android:entryValues="@array/fft_window_values"
+            android:defaultValue="BLACKMAN_HARRIS"/>
+
+        <SeekBarPreference
+            android:key="pref_fft_smoothing"
+            android:title="Spectrum Smoothing"
+            android:summary="Higher = smoother but slower response"
+            android:defaultValue="30"
+            app:min="0"
+            android:max="95"
+            app:showSeekBarValue="true"/>
+
+        <ListPreference
+            android:key="pref_spectrum_theme"
+            android:title="Spectrum Color Theme"
+            android:entries="@array/spectrum_theme_entries"
+            android:entryValues="@array/spectrum_theme_values"
+            android:defaultValue="Futuristic"/>
+
+        <ListPreference
+            android:key="pref_waterfall_palette"
+            android:title="Waterfall Color Palette"
+            android:entries="@array/waterfall_palette_entries"
+            android:entryValues="@array/waterfall_palette_values"
+            android:defaultValue="RAINBOW"/>
+
+        <SeekBarPreference
+            android:key="pref_waterfall_speed"
+            android:title="Waterfall Speed"
+            android:summary="Lines per second"
+            android:defaultValue="25"
+            app:min="1"
+            android:max="60"
+            app:showSeekBarValue="true"/>
+
+        <SwitchPreferenceCompat
+            android:key="pref_peak_hold"
+            android:title="Peak Hold"
+            android:summary="Show peak spectrum trace"
+            android:defaultValue="true"/>
+
+        <SeekBarPreference
+            android:key="pref_db_min"
+            android:title="Spectrum Floor (dBFS)"
+            android:summary="Minimum dB displayed (×−1)"
+            android:defaultValue="120"
+            app:min="60"
+            android:max="150"
+            app:showSeekBarValue="true"/>
+
+        <SeekBarPreference
+            android:key="pref_db_max"
+            android:title="Spectrum Ceiling (dBFS)"
+            android:summary="Maximum dB displayed (0 = full scale)"
+            android:defaultValue="0"
+            app:min="-40"
+            android:max="0"
+            app:showSeekBarValue="true"/>
+
+        <!-- ── Advanced spectrum / waterfall controls ───────────────── -->
+
+        <ListPreference
+            android:key="pref_frame_averaging"
+            android:title="Frame Averaging"
+            android:summary="Average N power spectra — lowers noise floor by √N dB at the cost of update rate"
+            android:entries="@array/frame_avg_entries"
+            android:entryValues="@array/frame_avg_values"
+            android:defaultValue="1"
+            android:dialogTitle="Select Frame Averaging"/>
+
+        <SeekBarPreference
+            android:key="pref_peak_decay"
+            android:title="Peak Hold Decay Rate"
+            android:summary="How fast the peak-hold trace falls (higher = faster decay). Unit: 0.001 dB/frame × value"
+            android:defaultValue="2"
+            app:min="1"
+            android:max="20"
+            app:showSeekBarValue="true"/>
+
+        <SwitchPreferenceCompat
+            android:key="pref_show_noise_floor"
+            android:title="Show Noise Floor Line"
+            android:summary="Draw the estimated per-frame noise floor as a dashed green line"
+            android:defaultValue="true"/>
+
+        <SwitchPreferenceCompat
+            android:key="pref_show_peak_annotations"
+            android:title="Peak Frequency Labels"
+            android:summary="Annotate the top-3 signal peaks with frequency and dBFS level"
+            android:defaultValue="true"/>
+
+        <SwitchPreferenceCompat
+            android:key="pref_crosshair_enabled"
+            android:title="Touch Crosshair"
+            android:summary="Show a live frequency/level crosshair while a finger is on the spectrum"
+            android:defaultValue="true"/>
+
+        <SeekBarPreference
+            android:key="pref_fill_opacity"
+            android:title="Spectrum Fill Opacity"
+            android:summary="Transparency of the gradient fill under the spectrum trace (0–100%)"
+            android:defaultValue="73"
+            app:min="0"
+            android:max="100"
+            app:showSeekBarValue="true"/>
+
+        <SwitchPreferenceCompat
+            android:key="pref_auto_range"
+            android:title="Auto dB Range"
+            android:summary="Automatically track incoming signal levels and adjust the dB display window"
+            android:defaultValue="false"/>
+
+        <SeekBarPreference
+            android:key="pref_waterfall_brightness"
+            android:title="Waterfall Brightness"
+            android:summary="Shift the palette mapping up or down (50 = neutral)"
+            android:defaultValue="50"
+            app:min="0"
+            android:max="100"
+            app:showSeekBarValue="true"/>
+
+        <SeekBarPreference
+            android:key="pref_waterfall_contrast"
+            android:title="Waterfall Contrast"
+            android:summary="Stretch or compress the palette around the mid-point (50 = neutral, 100 = 2×)"
+            android:defaultValue="50"
+            app:min="5"
+            android:max="150"
+            app:showSeekBarValue="true"/>
+
+        <SwitchPreferenceCompat
+            android:key="pref_waterfall_auto_stretch"
+            android:title="Waterfall Auto-Stretch"
+            android:summary="Automatically adjust the waterfall dynamic range to the incoming signal"
+            android:defaultValue="false"/>
+
+        <SwitchPreferenceCompat
+            android:key="pref_waterfall_show_timestamp"
+            android:title="Waterfall Time Ruler"
+            android:summary="Show elapsed-time marks on the right edge of the waterfall"
+            android:defaultValue="true"/>
+
+        <SwitchPreferenceCompat
+            android:key="pref_waterfall_show_tuner_marker"
+            android:title="Waterfall Centre Marker"
+            android:summary="Draw a dashed line at the hardware centre frequency (DC)"
+            android:defaultValue="true"/>
+    </PreferenceCategory>
+
+    <!-- ─── Audio ─────────────────────────────────────────────────────── -->
+    <PreferenceCategory android:title="Audio" android:key="cat_audio">
+
+        <ListPreference
+            android:key="pref_audio_output"
+            android:title="Audio Output"
+            android:entries="@array/audio_output_entries"
+            android:entryValues="@array/audio_output_values"
+            android:defaultValue="speaker"/>
+
+        <ListPreference
+            android:key="pref_audio_sink_rate"
+            android:title="Audio Output Sample Rate"
+            android:summary="Sample rate sent to the speaker/earphone. Lower rates fix pitch issues with certain IQ rates."
+            android:entries="@array/audio_sink_rate_entries"
+            android:entryValues="@array/audio_sink_rate_values"
+            android:defaultValue="44100"
+            android:dialogTitle="Select Audio Output Rate"/>
+
+        <SeekBarPreference
+            android:key="pref_default_volume"
+            android:title="Default Volume"
+            android:summary="0–200%"
+            android:defaultValue="100"
+            app:min="0"
+            android:max="200"
+            app:showSeekBarValue="true"/>
+
+        <SwitchPreferenceCompat
+            android:key="pref_stereo_wfm"
+            android:title="WFM Stereo Decoding"
+            android:summary="Decode pilot tone and stereo subcarrier"
+            android:defaultValue="true"/>
+
+        <SeekBarPreference
+            android:key="pref_deemph_us"
+            android:title="FM De-emphasis"
+            android:summary="75 = North America, 50 = Europe/World"
+            android:defaultValue="75"
+            app:min="50"
+            android:max="75"
+            app:showSeekBarValue="true"/>
+
+        <ListPreference
+            android:key="pref_freq_offset"
+            android:title="Frequency Offset"
+            android:summary="Shift signal by fixed Hz (software fine-tune)"
+            android:entries="@array/freq_offset_entries"
+            android:entryValues="@array/freq_offset_values"
+            android:defaultValue="0"/>
+
+        <SwitchPreferenceCompat
+            android:key="pref_dc_block"
+            android:title="DC Block"
+            android:summary="Remove IQ DC offset (disable if causing audio artefacts)"
+            android:defaultValue="true"/>
+
+    </PreferenceCategory>
+
+    <!-- ─── External Decoder ──────────────────────────────────────────── -->
+    <PreferenceCategory android:title="External Decoder" android:key="cat_external_decoder">
+
+        <SwitchPreferenceCompat
+            android:key="pref_external_decoder_enabled"
+            android:title="Pipe Audio to External Decoder"
+            android:summary="Stream the raw 48 kHz discriminator audio over UDP (PCM16LE) to a desktop decoder such as dsd-neo or DSD-FME, e.g. for protocols 9GRadio doesn't decode natively or to cross-check the built-in decoder."
+            android:defaultValue="false"/>
+
+        <EditTextPreference
+            android:key="pref_external_decoder_host"
+            android:title="Destination Host"
+            android:summary="IP address of the PC running the external decoder (127.0.0.1 if it's this same device via a loopback/USB-tether bridge)"
+            android:defaultValue="127.0.0.1"/>
+
+        <EditTextPreference
+            android:key="pref_external_decoder_port"
+            android:title="Destination Port"
+            android:summary="UDP port the external decoder is listening on. dsd-neo/DSD-FME default for -i udp is 7355."
+            android:defaultValue="7355"
+            android:inputType="number"/>
+
+    </PreferenceCategory>
+
+    <!-- ─── Recording ─────────────────────────────────────────────────── -->
+    <PreferenceCategory android:title="Recording" android:key="cat_recording">
+
+        <ListPreference
+            android:key="pref_iq_format"
+            android:title="IQ Recording Format"
+            android:entries="@array/iq_format_entries"
+            android:entryValues="@array/iq_format_values"
+            android:defaultValue="RAW_UINT8"/>
+
+        <EditTextPreference
+            android:key="pref_recording_path"
+            android:title="Recording Directory"
+            android:summary="Folder for saved IQ and audio files"
+            android:defaultValue="RTL-SDR/Recordings"
+            android:inputType="text"/>
+
+        <SeekBarPreference
+            android:key="pref_max_recording_gb"
+            android:title="Max Recording Size (GB)"
+            android:summary="Auto-stop when limit reached"
+            android:defaultValue="4"
+            app:min="1"
+            android:max="64"
+            app:showSeekBarValue="true"/>
+
+        <SwitchPreferenceCompat
+            android:key="pref_split_recordings"
+            android:title="Split Large Recordings"
+            android:summary="Split into 2 GB chunks automatically"
+            android:defaultValue="true"/>
+
+        <Preference
+            android:key="pref_clear_recordings"
+            android:title="Clear All Recordings"
+            android:summary="Delete all IQ and audio recordings from device"/>
+    </PreferenceCategory>
+
+    <!-- ─── Scanner ───────────────────────────────────────────────────── -->
+    <PreferenceCategory android:title="Scanner Defaults" android:key="cat_scanner">
+
+        <SeekBarPreference
+            android:key="pref_scan_dwell_ms"
+            android:title="Dwell Time (ms)"
+            android:summary="Time spent on each frequency"
+            android:defaultValue="200"
+            app:min="50"
+            android:max="5000"
+            app:showSeekBarValue="true"/>
+
+        <SeekBarPreference
+            android:key="pref_scan_resume_s"
+            android:title="Resume Delay (s)"
+            android:summary="Time to stay on active frequency"
+            android:defaultValue="3"
+            app:min="1"
+            android:max="30"
+            app:showSeekBarValue="true"/>
+
+        <SeekBarPreference
+            android:key="pref_scan_squelch"
+            android:title="Scan Squelch (dBFS × −1)"
+            android:summary="Signal threshold for scanner hit"
+            android:defaultValue="80"
+            app:min="20"
+            android:max="120"
+            app:showSeekBarValue="true"/>
+    </PreferenceCategory>
+
+    <!-- ─── Data / Backup ─────────────────────────────────────────────── -->
+    <PreferenceCategory android:title="Data &amp; Backup" android:key="cat_data">
+
+        <Preference
+            android:key="pref_export_settings"
+            android:title="Export Settings"
+            android:summary="Save all settings as JSON"/>
+
+        <Preference
+            android:key="pref_import_settings"
+            android:title="Import Settings"
+            android:summary="Restore settings from JSON"/>
+
+        <Preference
+            android:key="pref_export_memory"
+            android:title="Export Memory Channels"
+            android:summary="Save channels as JSON/CSV"/>
+
+        <Preference
+            android:key="pref_import_memory"
+            android:title="Import Memory Channels"
+            android:summary="Load channels from JSON/CSV"/>
+    </PreferenceCategory>
+
+    <!-- ─── About ─────────────────────────────────────────────────────── -->
+    <PreferenceCategory android:title="About" android:key="cat_about">
+
+        <Preference
+            android:key="pref_about"
+            android:title="9GRadio"
+            android:summary=""/>
+
+        <Preference
+            android:key="pref_device_info"
+            android:title="Device Information"
+            android:summary="Show connected RTL-SDR chip details"/>
+
+        <SwitchPreferenceCompat
+            android:key="pref_keep_screen_on"
+            android:title="Keep Screen On"
+            android:summary="Prevent screen sleep during SDR operation"
+            android:defaultValue="true"/>
+
+        <SwitchPreferenceCompat
+            android:key="pref_wake_lock"
+            android:title="Prevent CPU Sleep"
+            android:summary="Keep DSP running when screen is off"
+            android:defaultValue="false"/>
+    </PreferenceCategory>
+
+    <!-- ─── APRS ──────────────────────────────────────────────────────── -->
+    <PreferenceCategory android:title="APRS" android:key="cat_aprs">
+
+        <SwitchPreferenceCompat
+            android:key="pref_aprs_auto_display"
+            android:title="Auto-Display Received Messages"
+            android:summary="Automatically show incoming APRS packets for 5 seconds"
+            android:defaultValue="true"/>
+
+    </PreferenceCategory>
+
+</PreferenceScreen>

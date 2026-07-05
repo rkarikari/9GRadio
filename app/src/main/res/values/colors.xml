@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand / Primary palette -->
+    <color name="colorPrimary">#00CCFF</color>
+    <color name="colorPrimaryDark">#0088BB</color>
+    <color name="colorAccent">#FF8800</color>
+    <color name="colorSecondary">#44FF88</color>
+
+    <!-- Backgrounds -->
+    <color name="bgMain">#0D1117</color>
+    <color name="bgSurface">#161B22</color>
+    <color name="bgCard">#1C2128</color>
+    <color name="bgElevated">#21262D</color>
+
+    <!-- Text -->
+    <color name="textPrimary">#FFFFFFFF</color>
+    <color name="textSecondary">#AAFFFFFF</color>
+    <color name="textDisabled">#55FFFFFF</color>
+    <color name="textAccent">#00CCFF</color>
+    <color name="textWarning">#FFAA00</color>
+    <color name="textError">#FF4444</color>
+    <color name="textSuccess">#44FF88</color>
+
+    <!-- Signal / status -->
+    <color name="signalStrong">#00FF44</color>
+    <color name="signalMid">#FFCC00</color>
+    <color name="signalWeak">#FF4444</color>
+    <color name="squelchLine">#FFAA00</color>
+    <color name="biasTeeActive">#FF6600</color>
+
+    <!-- Spectrum themes -->
+    <color name="spectrumClassic">#00FF00</color>
+    <color name="spectrumFuturistic">#00CCFF</color>
+    <color name="spectrumAmber">#FF8800</color>
+
+    <!-- Dividers -->
+    <color name="divider">#33FFFFFF</color>
+    <color name="dividerSubtle">#1AFFFFFF</color>
+
+    <!-- Chip colors -->
+    <color name="chipSelected">#1A00CCFF</color>
+    <color name="chipText">#00CCFF</color>
+</resources>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Recent-call row for the DMR/Dig/YSF/D-STAR drawer tabs.
+
+  android.R.layout.simple_list_item_1 (used previously) has no singleLine
+  constraint, so a long call entry (protocol tag + time/duration + type +
+  ids + alias + icons + frame count) could wrap onto a second line instead
+  of staying a single row. singleLine + ellipsize="end" here forces exactly
+  one line per call, truncating with "…" if it still doesn't fit, and
+  textSize is set one step smaller than simple_list_item_1's default
+  (16sp -> 15sp) to fit more of each line before truncation kicks in.
+-->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/text1"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="?android:attr/listPreferredItemHeightSmall"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp"
+    android:gravity="center_vertical"
+    android:textSize="15sp"
+    android:singleLine="true"
+    android:ellipsize="end" />

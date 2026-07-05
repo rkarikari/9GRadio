@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="#0D1117">
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="40dp"
+        android:background="#161B22" android:gravity="center_vertical"
+        android:paddingHorizontal="16dp">
+        <TextView android:id="@+id/tvTotalSize"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Total: 0 MB  (0 files)" android:textColor="#88FFFFFF"
+            android:textSize="13sp"/>
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerRecordings"
+        android:layout_width="match_parent" android:layout_height="match_parent"/>
+</LinearLayout>

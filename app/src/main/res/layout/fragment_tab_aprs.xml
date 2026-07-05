@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tab – APRS: embedded APRS packet monitor. Shown only when DemodMode.APRS is active. -->
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:scrollbars="vertical">
+
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="12dp"
+    android:paddingTop="10dp"
+    android:paddingBottom="12dp">
+
+    <!-- Section label -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="APRS Monitor"
+        android:textColor="#00CCFF"
+        android:textSize="13sp"
+        android:textAllCaps="true"
+        android:letterSpacing="0.1"
+        android:layout_marginBottom="2dp"/>
+
+    <!-- Frequency / mode info -->
+    <TextView
+        android:id="@+id/tvAprsTabMode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Not active"
+        android:textColor="#66FFFFFF"
+        android:textSize="10sp"
+        android:fontFamily="monospace"
+        android:layout_marginBottom="8dp"
+        android:singleLine="true"
+        android:ellipsize="end"/>
+
+    <!-- Status + packet count -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="6dp">
+
+        <TextView
+            android:id="@+id/tvAprsTabStatus"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Idle"
+            android:textColor="#44FF88"
+            android:textSize="11sp"
+            android:fontFamily="monospace"/>
+
+        <TextView
+            android:id="@+id/tvAprsTabCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Packets: 0"
+            android:textColor="#FFAA00"
+            android:textSize="11sp"
+            android:fontFamily="monospace"/>
+    </LinearLayout>
+
+    <!-- Divider -->
+    <View android:layout_width="match_parent" android:layout_height="0.5dp"
+        android:background="#33FFFFFF" android:layout_marginBottom="6dp"/>
+
+    <!-- Packet log label -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Recent Packets (tap for detail)"
+        android:textColor="#88FFFFFF"
+        android:textSize="10sp"
+        android:layout_marginBottom="4dp"/>
+
+    <!-- Packet list (fixed height inside scroll) -->
+    <ListView
+        android:id="@+id/listAprsTabPackets"
+        android:layout_width="match_parent"
+        android:layout_height="220dp"
+        android:background="#0D1117"
+        android:divider="#22FFFFFF"
+        android:dividerHeight="0.5dp"
+        android:nestedScrollingEnabled="true"/>
+
+</LinearLayout>
+</ScrollView>

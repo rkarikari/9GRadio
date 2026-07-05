@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#0A1118">
+
+    <!-- ── Status bar ─────────────────────────────────────────────────────── -->
+    <LinearLayout
+        android:id="@+id/layoutAcarsStatus"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:background="#0D1117"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="12dp"
+        android:orientation="horizontal">
+
+        <!-- Signal lamp -->
+        <View
+            android:id="@+id/viewSignalLamp"
+            android:layout_width="10dp"
+            android:layout_height="10dp"
+            android:background="@drawable/ic_stop"
+            android:backgroundTint="#334455"
+            android:layout_marginEnd="8dp"/>
+
+        <TextView
+            android:id="@+id/tvAcarsStatus"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Waiting for signal…"
+            android:textColor="#44FF88"
+            android:textSize="12sp"
+            android:fontFamily="monospace"/>
+
+        <TextView
+            android:id="@+id/tvAcarsFreq"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="131.725 MHz"
+            android:textColor="#00CCFF"
+            android:textSize="13sp"
+            android:fontFamily="monospace"
+            android:layout_marginEnd="10dp"/>
+
+        <TextView
+            android:id="@+id/tvAcarsCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0 msgs"
+            android:textColor="#FFAA00"
+            android:textSize="12sp"
+            android:fontFamily="monospace"/>
+    </LinearLayout>
+
+    <!-- ── Frequency channel buttons (scroll horizontally) ───────────────── -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#161B22"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:paddingHorizontal="4dp"
+            android:gravity="center_vertical">
+
+            <Button android:id="@+id/btnCh131725"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="wrap_content" android:layout_height="40dp"
+                android:minHeight="0dp"
+                android:text="131.725 ★" android:textColor="#FFDD44" android:textSize="12sp"
+                android:paddingHorizontal="10dp"/>
+            <Button android:id="@+id/btnCh131825"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="wrap_content" android:layout_height="40dp"
+                android:minHeight="0dp"
+                android:text="131.825" android:textColor="#00CCFF" android:textSize="12sp"
+                android:paddingHorizontal="10dp"/>
+            <Button android:id="@+id/btnCh129125"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="wrap_content" android:layout_height="40dp"
+                android:minHeight="0dp"
+                android:text="129.125" android:textColor="#00CCFF" android:textSize="12sp"
+                android:paddingHorizontal="10dp"/>
+            <Button android:id="@+id/btnCh130025"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="wrap_content" android:layout_height="40dp"
+                android:minHeight="0dp"
+                android:text="130.025" android:textColor="#00CCFF" android:textSize="12sp"
+                android:paddingHorizontal="10dp"/>
+            <Button android:id="@+id/btnCh130425"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="wrap_content" android:layout_height="40dp"
+                android:minHeight="0dp"
+                android:text="130.425" android:textColor="#00CCFF" android:textSize="12sp"
+                android:paddingHorizontal="10dp"/>
+            <Button android:id="@+id/btnCh130450"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="wrap_content" android:layout_height="40dp"
+                android:minHeight="0dp"
+                android:text="130.450" android:textColor="#00CCFF" android:textSize="12sp"
+                android:paddingHorizontal="10dp"/>
+            <Button android:id="@+id/btnCh131125"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="wrap_content" android:layout_height="40dp"
+                android:minHeight="0dp"
+                android:text="131.125" android:textColor="#00CCFF" android:textSize="12sp"
+                android:paddingHorizontal="10dp"/>
+            <Button android:id="@+id/btnCh131550"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="wrap_content" android:layout_height="40dp"
+                android:minHeight="0dp"
+                android:text="131.550" android:textColor="#00CCFF" android:textSize="12sp"
+                android:paddingHorizontal="10dp"/>
+
+            <!-- Separator -->
+            <View android:layout_width="1dp" android:layout_height="20dp"
+                android:background="#33FFFFFF" android:layout_marginHorizontal="6dp"/>
+
+            <Button android:id="@+id/btnAcarsClear"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="wrap_content" android:layout_height="40dp"
+                android:minHeight="0dp"
+                android:text="Clear" android:textColor="#FF4444" android:textSize="12sp"
+                android:paddingHorizontal="10dp"/>
+
+            <Button android:id="@+id/btnAcarsExport"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="wrap_content" android:layout_height="40dp"
+                android:minHeight="0dp"
+                android:text="Export" android:textColor="#44FF88" android:textSize="12sp"
+                android:paddingHorizontal="10dp"/>
+
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <!-- ── Filter chips ───────────────────────────────────────────────────── -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#10161C"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/layoutFilterChips"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:paddingHorizontal="8dp"
+            android:gravity="center_vertical">
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Filter:" android:textColor="#668899"
+                android:textSize="11sp" android:layout_marginEnd="6dp"/>
+
+            <Button android:id="@+id/chipAll"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="wrap_content" android:layout_height="32dp"
+                android:minHeight="0dp"
+                android:text="All" android:textColor="#FFFFFF"
+                android:textSize="11sp" android:paddingHorizontal="10dp"
+                android:backgroundTint="#33004488"/>
+
+            <Button android:id="@+id/chipH1"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="wrap_content" android:layout_height="32dp"
+                android:minHeight="0dp"
+                android:text="H1 OOOI" android:textColor="#44FF88"
+                android:textSize="11sp" android:paddingHorizontal="10dp"
+                android:backgroundTint="#22004400"/>
+
+            <Button android:id="@+id/chipQ0"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="wrap_content" android:layout_height="32dp"
+                android:minHeight="0dp"
+                android:text="Q0 Pos" android:textColor="#00CCFF"
+                android:textSize="11sp" android:paddingHorizontal="10dp"
+                android:backgroundTint="#22000044"/>
+
+            <Button android:id="@+id/chipQM"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="wrap_content" android:layout_height="32dp"
+                android:minHeight="0dp"
+                android:text="QM Wx" android:textColor="#FFAA00"
+                android:textSize="11sp" android:paddingHorizontal="10dp"
+                android:backgroundTint="#22440000"/>
+
+            <Button android:id="@+id/chipSA"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="wrap_content" android:layout_height="32dp"
+                android:minHeight="0dp"
+                android:text="SA PDC" android:textColor="#FF88CC"
+                android:textSize="11sp" android:paddingHorizontal="10dp"
+                android:backgroundTint="#22440022"/>
+
+            <Button android:id="@+id/chipOther"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="wrap_content" android:layout_height="32dp"
+                android:minHeight="0dp"
+                android:text="Other" android:textColor="#AAAAAA"
+                android:textSize="11sp" android:paddingHorizontal="10dp"
+                android:backgroundTint="#22222222"/>
+
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <!-- ── Stats bar ──────────────────────────────────────────────────────── -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="28dp"
+        android:background="#0D1117"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="12dp"
+        android:orientation="horizontal">
+
+        <TextView android:id="@+id/tvAcarsStats"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Tap a message for details · Long-press to copy"
+            android:textColor="#446688"
+            android:textSize="10sp"
+            android:fontFamily="monospace"/>
+
+        <TextView android:id="@+id/tvAcarsFilter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Showing: all"
+            android:textColor="#446688"
+            android:textSize="10sp"
+            android:fontFamily="monospace"/>
+    </LinearLayout>
+
+    <!-- ── Message log ─────────────────────────────────────────────────────── -->
+    <ListView
+        android:id="@+id/listAcarsMessages"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#0A1118"
+        android:divider="#1AFFFFFF"
+        android:dividerHeight="1dp"
+        android:scrollbarThumbVertical="@android:color/darker_gray"/>
+
+    <!-- ── Empty-state hint ───────────────────────────────────────────────── -->
+    <TextView
+        android:id="@+id/tvAcarsEmpty"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:text="No messages yet.\n\nACars uses AM + 2400-baud FSK.\nCommon channels: 131.550, 131.725, 131.825 MHz\n\nEnsure mode is set to ACARS\nand an RTL-SDR is connected."
+        android:textColor="#335566"
+        android:textSize="14sp"
+        android:fontFamily="monospace"
+        android:visibility="gone"/>
+
+</LinearLayout>

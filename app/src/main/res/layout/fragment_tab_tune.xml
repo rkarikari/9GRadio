@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tab 0 – TUNE: tuning dial + step selector + band presets -->
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:scrollbars="vertical">
+
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="12dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="12dp">
+
+    <!-- Tuning dial: horizontal 3D film-strip, swipe left/right to tune -->
+    <com.radiosport.ninegradio.ui.TuningDialView
+        android:id="@+id/tuningDial"
+        android:layout_width="match_parent"
+        android:layout_height="140dp"
+        android:layout_marginVertical="4dp"/>
+
+    <!-- Step size quick-select chips -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="STEP SIZE"
+        android:textColor="#00CCFF"
+        android:textSize="11sp"
+        android:textAllCaps="true"
+        android:letterSpacing="0.1"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="2dp"/>
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none">
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroupStep"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:singleSelection="true"
+            app:selectionRequired="true"/>
+    </HorizontalScrollView>
+
+    <!-- Coarse / Fine toggle -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="8dp">
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Fine Tune"
+                android:textColor="#AAFFFFFF"
+                android:textSize="13sp"/>
+            <TextView
+                android:id="@+id/tvFineTuneSub"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Long-press dial, or toggle here"
+                android:textColor="#66FFFFFF"
+                android:textSize="10sp"/>
+        </LinearLayout>
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/switchFineTune"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+    </LinearLayout>
+
+    <!-- Divider -->
+    <View android:layout_width="match_parent" android:layout_height="1dp"
+        android:background="#33FFFFFF" android:layout_marginVertical="10dp"/>
+
+    <!-- Band presets -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="BAND PRESETS"
+        android:textColor="#00CCFF"
+        android:textSize="11sp"
+        android:textAllCaps="true"
+        android:letterSpacing="0.1"
+        android:layout_marginBottom="4dp"/>
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none">
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroupBands"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:singleSelection="false"/>
+    </HorizontalScrollView>
+
+    <!-- Snap to channel -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="8dp">
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Snap to Channel Grid"
+                android:textColor="#AAFFFFFF"
+                android:textSize="13sp"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Auto-align to band channel spacing"
+                android:textColor="#66FFFFFF"
+                android:textSize="10sp"/>
+        </LinearLayout>
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/switchSnapChannel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="true"/>
+    </LinearLayout>
+
+</LinearLayout>
+
+</ScrollView>

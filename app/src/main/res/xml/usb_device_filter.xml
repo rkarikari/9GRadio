@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    RTL-SDR USB Device Filter
+    9GRadio supported hardware — VID=0x0BDA (Realtek)
+    All values are decimal (Android USB filter requirement).
+    0x0BDA = 3034 (Realtek VID)
+-->
+<resources>
+    <!-- RTL-SDR Blog V4 (R828D / 0x2838) -->
+    <usb-device vendor-id="3034" product-id="10296" />  <!-- 0x0BDA / 0x2838 -->
+    <!-- RTL-SDR Blog V3 / generic R820T2 (0x2832) -->
+    <usb-device vendor-id="3034" product-id="10290" />  <!-- 0x0BDA / 0x2832 -->
+    <!-- RTL-SDR Blog V3 (0x2836) -->
+    <usb-device vendor-id="3034" product-id="10294" />  <!-- 0x0BDA / 0x2836 -->
+    <!-- RTL2832U no tuner (0x2837) -->
+    <usb-device vendor-id="3034" product-id="10295" />  <!-- 0x0BDA / 0x2837 -->
+    <!-- RTL2832U Fitipower (0x2840) -->
+    <usb-device vendor-id="3034" product-id="10304" />  <!-- 0x0BDA / 0x2840 -->
+    <!-- Ezcap EzTV (0x2850) -->
+    <usb-device vendor-id="3034" product-id="10320" />
+    <!-- Terratec Cinergy T (0x1624 / 0x1670) -->
+    <usb-device vendor-id="5743" product-id="4128" />
+    <usb-device vendor-id="5743" product-id="4176" />
+    <!-- Generic RTL2832U clones -->
+    <usb-device vendor-id="3034" product-id="10297" />
+    <usb-device vendor-id="3034" product-id="10298" />
+</resources>

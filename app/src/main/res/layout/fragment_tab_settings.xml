@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tab 5 – SETTINGS -->
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:scrollbars="vertical">
+
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingTop="8dp"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingBottom="12dp">
+
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="Settings" android:textColor="#AAAAAA" android:textSize="13sp"
+        android:textAllCaps="true" android:letterSpacing="0.1" android:layout_marginBottom="8dp"/>
+
+    <!-- Reverse tuning wheel -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical">
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Reverse Tuning Wheel" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Swap up/down direction on dial and frequency view"
+                android:textColor="#66FFFFFF" android:textSize="10sp"/>
+        </LinearLayout>
+        <Switch android:id="@+id/switchReverseTuning"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:checked="false"/>
+    </LinearLayout>
+
+    <!-- Allow out-of-bound frequency -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="8dp">
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Out-of-Bound Frequency" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Allow all RTL-SDR frequencies (enable for Blog v4)"
+                android:textColor="#66FFFFFF" android:textSize="10sp"/>
+        </LinearLayout>
+        <Switch android:id="@+id/switchOutOfBound"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:checked="false"/>
+    </LinearLayout>
+
+    <View android:layout_width="match_parent" android:layout_height="1dp"
+        android:background="#33FFFFFF" android:layout_marginVertical="12dp"/>
+
+    <!-- ── Row 0: Bookmarks (full width) ─────────────────────────── -->
+    <Button
+        android:id="@+id/btnBookmarks"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:text="Bookmarks"
+        android:textSize="11sp"
+        android:backgroundTint="#1A2A3A"
+        android:textColor="#AAFFFFFF"/>
+
+    <!-- ── Row 1: Scanner · Debug Panel ──────────────────────────── -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:layout_marginTop="6dp">
+
+        <Button
+            android:id="@+id/btnScanner"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:text="Scanner"
+            android:textSize="11sp"
+            android:backgroundTint="#1A2A3A"
+            android:textColor="#AAFFFFFF"/>
+
+        <Button
+            android:id="@+id/btnDebugPanel"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:text="Debug Panel"
+            android:textSize="11sp"
+            android:backgroundTint="#1A2A3A"
+            android:textColor="#AAFFFFFF"/>
+
+    </LinearLayout>
+
+    <!-- ── Row 2: Device Info · Settings ─────────────────────────── -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:layout_marginTop="6dp">
+
+        <Button
+            android:id="@+id/btnDeviceInfo"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:text="Device Info"
+            android:textSize="11sp"
+            android:backgroundTint="#1A2A3A"
+            android:textColor="#AAFFFFFF"/>
+
+        <Button
+            android:id="@+id/btnOpenSettings"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:text="Settings"
+            android:textSize="11sp"
+            android:backgroundTint="#1A2A3A"
+            android:textColor="#AAFFFFFF"/>
+
+    </LinearLayout>
+
+    <!-- ── Copyright ─────────────────────────────────────────────── -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginTop="20dp"
+        android:paddingVertical="8dp"
+        android:paddingHorizontal="12dp"
+        android:background="#0DFFFFFF">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:text="© RNK 9G5AR RadioSport"
+            android:textColor="#FFFFFFFF"
+            android:textSize="11sp"
+            android:letterSpacing="0.05"/>
+
+        <TextView
+            android:id="@+id/tvAppVersion"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:text="9GRadio v1.07"
+            android:textColor="#FFFFFFFF"
+            android:textSize="10sp"
+            android:layout_marginTop="2dp"/>
+
+    </LinearLayout>
+
+</LinearLayout>
+
+</ScrollView>

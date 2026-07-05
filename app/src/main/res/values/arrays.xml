@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- FFT Decimation -->
+    <string-array name="decimation_entries">
+        <item>Off (Full BW)</item>
+        <item>÷2 (½ BW)</item>
+        <item>÷4 (¼ BW)</item>
+        <item>÷8 (⅛ BW)</item>
+        <item>÷16</item>
+        <item>÷32</item>
+        <item>÷64</item>
+    </string-array>
+    <string-array name="decimation_values">
+        <item>1</item>
+        <item>2</item>
+        <item>4</item>
+        <item>8</item>
+        <item>16</item>
+        <item>32</item>
+        <item>64</item>
+    </string-array>
+
+    <!-- Direct sampling -->    <string-array name="direct_sampling_entries">
+        <item>Off (Tuner)</item>
+        <item>I-Branch (&lt;28.8 MHz)</item>
+        <item>Q-Branch (V4 HF, recommended)</item>
+    </string-array>
+    <string-array name="direct_sampling_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+
+    <!-- FFT sizes -->
+    <string-array name="fft_size_entries">
+        <item>256</item>
+        <item>512</item>
+        <item>1024</item>
+        <item>2048</item>
+        <item>4096</item>
+        <item>8192</item>
+        <item>16384</item>
+    </string-array>
+    <string-array name="fft_size_values">
+        <item>256</item>
+        <item>512</item>
+        <item>1024</item>
+        <item>2048</item>
+        <item>4096</item>
+        <item>8192</item>
+        <item>16384</item>
+    </string-array>
+
+    <!-- FFT windows -->
+    <string-array name="fft_window_entries">
+        <item>Rectangular (no window)</item>
+        <item>Hann</item>
+        <item>Hamming</item>
+        <item>Blackman</item>
+        <item>Blackman-Harris (recommended)</item>
+        <item>Flat Top</item>
+        <item>Kaiser</item>
+        <item>Nuttall 4-term</item>
+    </string-array>
+    <string-array name="fft_window_values">
+        <item>RECTANGULAR</item>
+        <item>HANN</item>
+        <item>HAMMING</item>
+        <item>BLACKMAN</item>
+        <item>BLACKMAN_HARRIS</item>
+        <item>FLAT_TOP</item>
+        <item>KAISER</item>
+        <item>NUTTALL</item>
+    </string-array>
+
+    <!-- Frame averaging — accumulate N power spectra before display.
+         Reduces noise floor by √N dB; trades update rate for sensitivity. -->
+    <string-array name="frame_avg_entries">
+        <item>Off (1 frame)</item>
+        <item>2 frames (−3 dB noise)</item>
+        <item>4 frames (−6 dB noise)</item>
+        <item>8 frames (−9 dB noise)</item>
+        <item>16 frames (−12 dB noise)</item>
+        <item>32 frames (−15 dB noise)</item>
+    </string-array>
+    <string-array name="frame_avg_values">
+        <item>1</item>
+        <item>2</item>
+        <item>4</item>
+        <item>8</item>
+        <item>16</item>
+        <item>32</item>
+    </string-array>
+
+    <!-- Sample rates.  Two valid bands separated by a dead zone (~300–900 kS/s).
+         Low-rate band (225–300 kS/s): reduced USB load, ideal for narrowband modes.
+         Main band (900 kS/s – 2.4 MS/s): full-spectrum capability.
+         Decimation factors shown are to the dynamic narrowIfRate. -->
+    <string-array name="sample_rate_entries">
+        <!-- Low-rate band (225 001–300 000 Hz) -->
+        <item>240 kS/s  (÷5 → 48 kHz IF)</item>
+        <item>242 kS/s  (÷5 → 48.4 kHz IF)</item>
+        <item>250 kS/s  (÷5 → 50 kHz IF)</item>
+        <item>256 kS/s  (÷5 → 51.2 kHz IF)</item>
+        <item>264 kS/s  (÷5 → 52.8 kHz IF)</item>
+        <item>272 kS/s  (÷5 → 54.4 kHz IF)</item>
+        <item>286 kS/s  (÷5 → 57.2 kHz IF)</item>
+        <item>288 kS/s  (÷6 → 48 kHz IF)</item>
+        <item>300 kS/s  (÷6 → 50 kHz IF)</item>
+        <!-- Main band: integer-divisor to narrowIfRate (48 kHz) -->
+        <item>912 kS/s  (÷19)</item>
+        <item>960 kS/s  (÷20)</item>
+        <item>1.024 MS/s</item>
+        <item>1.152 MS/s (÷24)</item>
+        <item>1.200 MS/s (÷25)</item>
+        <item>1.296 MS/s (÷27)</item>
+        <item>1.440 MS/s (÷30)</item>
+        <item>1.536 MS/s (÷32)</item>
+        <item>1.680 MS/s (÷35)</item>
+        <item>1.824 MS/s (÷38)</item>
+        <item>1.920 MS/s (÷40)</item>
+        <item>2.016 MS/s (÷42)</item>
+        <item>2.048 MS/s</item>
+        <item>2.160 MS/s (÷45)</item>
+        <item>2.256 MS/s (÷47)</item>
+        <item>2.400 MS/s (÷50)</item>
+    </string-array>
+    <string-array name="sample_rate_values">
+        <item>240000</item>
+        <item>242000</item>
+        <item>250000</item>
+        <item>256000</item>
+        <item>264000</item>
+        <item>272000</item>
+        <item>286000</item>
+        <item>288000</item>
+        <item>300000</item>
+        <item>912000</item>
+        <item>960000</item>
+        <item>1024000</item>
+        <item>1152000</item>
+        <item>1200000</item>
+        <item>1296000</item>
+        <item>1440000</item>
+        <item>1536000</item>
+        <item>1680000</item>
+        <item>1824000</item>
+        <item>1920000</item>
+        <item>2016000</item>
+        <item>2048000</item>
+        <item>2160000</item>
+        <item>2256000</item>
+        <item>2400000</item>
+    </string-array>
+
+    <!-- Waterfall palettes.
+         *** Original 5 entries MUST remain first — ordinals are used by
+             MainActivity to index into WaterfallView.Companion.Palette.values(). -->
+    <string-array name="waterfall_palette_entries">
+        <!-- Original palettes (ordinals 0-4) -->
+        <item>Rainbow</item>
+        <item>Heat</item>
+        <item>Grayscale</item>
+        <item>Blue-White</item>
+        <item>Purple-Yellow</item>
+        <!-- New scientific palettes (ordinals 5-10) -->
+        <item>Viridis</item>
+        <item>Inferno</item>
+        <item>Magma</item>
+        <item>Turbo</item>
+        <item>Solar</item>
+        <item>Night Vision</item>
+    </string-array>
+    <string-array name="waterfall_palette_values">
+        <item>RAINBOW</item>
+        <item>HEAT</item>
+        <item>GRAYSCALE</item>
+        <item>BLUE_WHITE</item>
+        <item>PURPLE_YELLOW</item>
+        <item>VIRIDIS</item>
+        <item>INFERNO</item>
+        <item>MAGMA</item>
+        <item>TURBO</item>
+        <item>SOLAR</item>
+        <item>NIGHT_VISION</item>
+    </string-array>
+
+    <!-- Spectrum themes -->
+    <string-array name="spectrum_theme_entries">
+        <!-- Original themes (ordinals 0-4) -->
+        <item>Classic (Green)</item>
+        <item>Futuristic (Cyan)</item>
+        <item>Amber</item>
+        <item>Grayscale</item>
+        <item>Purple</item>
+        <!-- New themes (ordinals 5-9) -->
+        <item>Solar (Orange)</item>
+        <item>Neon (Magenta)</item>
+        <item>Ice (Blue-White)</item>
+        <item>Midnight (Deep Blue)</item>
+        <item>Sakura (Pink)</item>
+    </string-array>
+    <string-array name="spectrum_theme_values">
+        <item>Classic</item>
+        <item>Futuristic</item>
+        <item>Amber</item>
+        <item>Grayscale</item>
+        <item>Purple</item>
+        <item>Solar</item>
+        <item>Neon</item>
+        <item>Ice</item>
+        <item>Midnight</item>
+        <item>Sakura</item>
+    </string-array>
+
+    <!-- IQ formats -->
+    <string-array name="iq_format_entries">
+        <item>Raw uint8 (.iq)</item>
+        <item>GZip compressed (.iq.gz)</item>
+        <item>Float32 (.cf32)</item>
+    </string-array>
+    <string-array name="iq_format_values">
+        <item>RAW_UINT8</item>
+        <item>GZIP_UINT8</item>
+        <item>FLOAT32</item>
+    </string-array>
+
+    <!-- Audio output -->
+    <string-array name="audio_output_entries">
+        <item>Speaker</item>
+        <item>Earphone</item>
+        <item>Bluetooth</item>
+    </string-array>
+    <string-array name="audio_output_values">
+        <item>speaker</item>
+        <item>earphone</item>
+        <item>bluetooth</item>
+    </string-array>
+
+    <!-- Audio sink (output) sample rate.
+         Independent of the internal 48 kHz DSP / protocol-decoder rate.
+         Lower rates reduce CPU load; non-48k rates fix mickey-mouse / pitch
+         drift that can occur when the IQ→audio ratio is non-trivial at 48 kHz. -->
+    <string-array name="audio_sink_rate_entries">
+        <item>44.1 kHz (CD)</item>
+        <item>32 kHz</item>
+        <item>24 kHz</item>
+        <item>22.05 kHz</item>
+        <item>16 kHz</item>
+        <item>48 kHz (DSP native)</item>
+    </string-array>
+    <string-array name="audio_sink_rate_values">
+        <item>44100</item>
+        <item>32000</item>
+        <item>24000</item>
+        <item>22050</item>
+        <item>16000</item>
+        <item>48000</item>
+    </string-array>
+
+    <!-- Frequency offset (software NCO fine-tune) -->
+    <string-array name="freq_offset_entries">
+        <item>Off (0 Hz)</item>
+        <item>+1000 Hz</item>
+        <item>−1000 Hz</item>
+        <item>+1500 Hz</item>
+        <item>−1500 Hz</item>
+        <item>+2000 Hz</item>
+        <item>−2000 Hz</item>
+    </string-array>
+    <string-array name="freq_offset_values">
+        <item>0</item>
+        <item>1000</item>
+        <item>-1000</item>
+        <item>1500</item>
+        <item>-1500</item>
+        <item>2000</item>
+        <item>-2000</item>
+    </string-array>
+
+    <!-- Demod modes for spinner in memory dialog -->
+    <string-array name="demod_mode_entries">
+        <item>AM</item>
+        <item>FM (Narrow)</item>
+        <item>WFM (Broadcast)</item>
+        <item>WFM Stereo</item>
+        <item>USB</item>
+        <item>LSB</item>
+        <item>CW</item>
+        <item>CWR</item>
+        <item>DSB</item>
+        <item>ADS-B</item>
+        <item>APRS</item>
+        <item>ACARS</item>
+        <item>FLEX</item>
+        <item>RAW IQ</item>
+    </string-array>
+
+</resources>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#050D12">
+
+    <!-- Status bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:background="#0D1117"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="12dp">
+
+        <TextView android:id="@+id/tvAdsbStatus"
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Waiting for device…"
+            android:textColor="#00FF88"
+            android:textSize="13sp"
+            android:fontFamily="monospace"/>
+
+        <TextView android:id="@+id/tvAircraftCount"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Aircraft: 0"
+            android:textColor="#FFAA00"
+            android:textSize="13sp"
+            android:fontFamily="monospace"/>
+    </LinearLayout>
+
+    <!-- Radar display - square, takes most of the screen -->
+    <com.radiosport.ninegradio.ui.AdsbRadarView
+        android:id="@+id/radarView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
+
+    <!-- Aircraft list -->
+    <ListView
+        android:id="@+id/listAircraft"
+        android:layout_width="match_parent"
+        android:layout_height="160dp"
+        android:background="#0D1117"
+        android:divider="#22FFFFFF"
+        android:dividerHeight="0.5dp"/>
+
+</LinearLayout>

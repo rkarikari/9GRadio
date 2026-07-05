@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tab – MODE: demodulation protocol selector (AM, NFM, WFM, SSB, etc.) -->
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:scrollbars="vertical">
+
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="16dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="12dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Demodulation Mode"
+        android:textColor="#00CCFF"
+        android:textSize="13sp"
+        android:textAllCaps="true"
+        android:letterSpacing="0.1"
+        android:layout_marginBottom="2dp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Select the demodulator used to decode the current frequency."
+        android:textColor="#66FFFFFF"
+        android:textSize="10sp"
+        android:layout_marginBottom="10dp"/>
+
+    <!-- Protocol chips: wraps onto multiple lines, full panel width available -->
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/chipGroupDemod"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:singleSelection="true"
+        app:selectionRequired="true"
+        app:chipSpacingHorizontal="8dp"
+        app:chipSpacingVertical="8dp"/>
+
+    <View android:layout_width="match_parent" android:layout_height="1dp"
+        android:background="#33FFFFFF" android:layout_marginVertical="20dp"/>
+
+    <!-- Shutdown: button + timer dial on one row, status text below -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <Button
+                android:id="@+id/btnShutdown"
+                style="@style/Widget.AppCompat.Button.Colored"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Shutdown"
+                android:textAllCaps="false"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#CC3333"
+                android:drawableStart="@drawable/ic_stop"
+                android:drawablePadding="8dp"
+                android:paddingVertical="12dp"/>
+
+            <Spinner
+                android:id="@+id/spinnerShutdownTimer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:backgroundTint="#CC3333"
+                android:popupBackground="#1A1A2E"/>
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvShutdownTimerStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Disconnects the SDR device and closes the app."
+            android:textColor="#66FFFFFF"
+            android:textSize="10sp"/>
+
+    </LinearLayout>
+
+</LinearLayout>
+
+</ScrollView>

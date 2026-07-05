@@ -1,0 +1,407 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tab 2 – DISPLAY -->
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:scrollbars="vertical">
+
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingTop="8dp"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingBottom="16dp">
+
+    <!-- ══ LAYOUT ══════════════════════════════════════════════════════════ -->
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="Display" android:textColor="#00CCFF" android:textSize="12sp"
+        android:textAllCaps="true" android:letterSpacing="0.12"
+        android:layout_marginBottom="6dp"/>
+
+    <!-- Spec/WF Ratio -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical">
+        <TextView android:layout_width="110dp" android:layout_height="wrap_content"
+            android:text="Spec/WF Ratio" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+        <com.google.android.material.slider.Slider
+            android:id="@+id/sliderSpecWfRatio"
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:valueFrom="0.1" android:valueTo="0.9" android:value="0.4"
+            app:thumbColor="#00CCFF" app:trackColorActive="#00CCFF"
+            app:trackColorInactive="#33FFFFFF"/>
+        <TextView android:id="@+id/tvSpecWfRatioValue"
+            android:layout_width="40dp" android:layout_height="wrap_content"
+            android:text="40%" android:textColor="#00CCFF" android:textSize="12sp"
+            android:gravity="end" android:fontFamily="monospace"/>
+    </LinearLayout>
+
+    <!-- ══ SPECTRUM ════════════════════════════════════════════════════════ -->
+    <View android:layout_width="match_parent" android:layout_height="1dp"
+        android:background="#22FFFFFF" android:layout_marginTop="10dp" android:layout_marginBottom="4dp"/>
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="Spectrum" android:textColor="#6600CCFF" android:textSize="10sp"
+        android:textAllCaps="true" android:letterSpacing="0.1"
+        android:layout_marginBottom="6dp"/>
+
+    <!-- Spectrum Color -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical">
+        <TextView android:layout_width="110dp" android:layout_height="wrap_content"
+            android:text="Color Theme" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+        <Spinner android:id="@+id/spinnerTheme"
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:backgroundTint="#00CCFF"/>
+    </LinearLayout>
+
+    <!-- Fill Opacity -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="8dp">
+        <TextView android:layout_width="110dp" android:layout_height="wrap_content"
+            android:text="Fill Opacity" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+        <com.google.android.material.slider.Slider
+            android:id="@+id/sliderFillOpacity"
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:valueFrom="0.0" android:valueTo="1.0" android:value="0.73"
+            app:thumbColor="#00CCFF" app:trackColorActive="#00CCFF"
+            app:trackColorInactive="#33FFFFFF"/>
+        <TextView android:id="@+id/tvFillOpacityValue"
+            android:layout_width="40dp" android:layout_height="wrap_content"
+            android:text="73%" android:textColor="#00CCFF" android:textSize="12sp"
+            android:gravity="end" android:fontFamily="monospace"/>
+    </LinearLayout>
+
+    <!-- Spectrum Floor -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="8dp">
+        <TextView android:layout_width="110dp" android:layout_height="wrap_content"
+            android:text="Floor (dBFS)" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+        <com.google.android.material.slider.Slider
+            android:id="@+id/sliderSpecFloor"
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:valueFrom="-200.0" android:valueTo="-10.0" android:value="-120.0"
+            android:stepSize="1.0"
+            app:thumbColor="#00CCFF" app:trackColorActive="#00CCFF"
+            app:trackColorInactive="#33FFFFFF"/>
+        <TextView android:id="@+id/tvSpecFloorValue"
+            android:layout_width="48dp" android:layout_height="wrap_content"
+            android:text="-120" android:textColor="#00CCFF" android:textSize="12sp"
+            android:gravity="end" android:fontFamily="monospace"/>
+    </LinearLayout>
+
+    <!-- Spectrum Ceiling -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="8dp">
+        <TextView android:layout_width="110dp" android:layout_height="wrap_content"
+            android:text="Ceiling (dBFS)" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+        <com.google.android.material.slider.Slider
+            android:id="@+id/sliderSpecCeiling"
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:valueFrom="-100.0" android:valueTo="50.0" android:value="0.0"
+            android:stepSize="1.0"
+            app:thumbColor="#00CCFF" app:trackColorActive="#00CCFF"
+            app:trackColorInactive="#33FFFFFF"/>
+        <TextView android:id="@+id/tvSpecCeilingValue"
+            android:layout_width="48dp" android:layout_height="wrap_content"
+            android:text="0" android:textColor="#00CCFF" android:textSize="12sp"
+            android:gravity="end" android:fontFamily="monospace"/>
+    </LinearLayout>
+
+    <!-- Auto dB Range -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="6dp">
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Auto dB Range" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Track signal level automatically"
+                android:textColor="#55FFFFFF" android:textSize="10sp"/>
+        </LinearLayout>
+        <Switch android:id="@+id/switchAutoRange"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+    </LinearLayout>
+
+    <!-- Reset dB Range -->
+    <Button
+        android:id="@+id/btnResetDbRange"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:layout_marginTop="4dp"
+        android:text="Reset dB Range"
+        android:textSize="12sp"
+        android:textColor="#00CCFF"
+        app:strokeColor="#3300CCFF"/>
+
+    <!-- Noise Floor Line -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="6dp">
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Noise Floor Line" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Dashed green line at estimated noise"
+                android:textColor="#55FFFFFF" android:textSize="10sp"/>
+        </LinearLayout>
+        <Switch android:id="@+id/switchNoiseFloor"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:checked="true"/>
+    </LinearLayout>
+
+    <!-- Peak Hold -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="6dp">
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Peak Hold" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Show peak signal trace in red"
+                android:textColor="#55FFFFFF" android:textSize="10sp"/>
+        </LinearLayout>
+        <Switch android:id="@+id/switchPeakHold"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:checked="false"/>
+    </LinearLayout>
+
+    <!-- Peak Decay Rate -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="8dp">
+        <TextView android:layout_width="110dp" android:layout_height="wrap_content"
+            android:text="Peak Decay" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+        <com.google.android.material.slider.Slider
+            android:id="@+id/sliderPeakDecay"
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:valueFrom="1.0" android:valueTo="20.0" android:value="2.0"
+            android:stepSize="1.0"
+            app:thumbColor="#FF4444" app:trackColorActive="#FF4444"
+            app:trackColorInactive="#33FFFFFF"/>
+        <TextView android:id="@+id/tvPeakDecayValue"
+            android:layout_width="40dp" android:layout_height="wrap_content"
+            android:text="2" android:textColor="#FF4444" android:textSize="12sp"
+            android:gravity="end" android:fontFamily="monospace"/>
+    </LinearLayout>
+
+    <!-- Peak Annotations -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="6dp">
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Peak Labels" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Mark top-3 signal peaks with freq + dB"
+                android:textColor="#55FFFFFF" android:textSize="10sp"/>
+        </LinearLayout>
+        <Switch android:id="@+id/switchPeakAnnotations"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:checked="true"/>
+    </LinearLayout>
+
+    <!-- Touch Crosshair -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="6dp">
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Touch Crosshair" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Show freq+dB readout while touching"
+                android:textColor="#55FFFFFF" android:textSize="10sp"/>
+        </LinearLayout>
+        <Switch android:id="@+id/switchCrosshair"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:checked="true"/>
+    </LinearLayout>
+
+    <!-- ══ WATERFALL ═══════════════════════════════════════════════════════ -->
+    <View android:layout_width="match_parent" android:layout_height="1dp"
+        android:background="#22FFFFFF" android:layout_marginTop="10dp" android:layout_marginBottom="4dp"/>
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="Waterfall" android:textColor="#6600CCFF" android:textSize="10sp"
+        android:textAllCaps="true" android:letterSpacing="0.1"
+        android:layout_marginBottom="6dp"/>
+
+    <!-- Waterfall Color -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical">
+        <TextView android:layout_width="110dp" android:layout_height="wrap_content"
+            android:text="Palette" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+        <Spinner android:id="@+id/spinnerPalette"
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:backgroundTint="#00CCFF"/>
+    </LinearLayout>
+
+    <!-- Brightness -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="8dp">
+        <TextView android:layout_width="110dp" android:layout_height="wrap_content"
+            android:text="Brightness" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+        <com.google.android.material.slider.Slider
+            android:id="@+id/sliderWfBrightness"
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:valueFrom="-0.5" android:valueTo="0.5" android:value="0.0"
+            app:thumbColor="#00CCFF" app:trackColorActive="#00CCFF"
+            app:trackColorInactive="#33FFFFFF"/>
+        <TextView android:id="@+id/tvWfBrightnessValue"
+            android:layout_width="40dp" android:layout_height="wrap_content"
+            android:text="0" android:textColor="#00CCFF" android:textSize="12sp"
+            android:gravity="end" android:fontFamily="monospace"/>
+    </LinearLayout>
+
+    <!-- Contrast -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="8dp">
+        <TextView android:layout_width="110dp" android:layout_height="wrap_content"
+            android:text="Contrast" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+        <com.google.android.material.slider.Slider
+            android:id="@+id/sliderWfContrast"
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:valueFrom="0.2" android:valueTo="3.0" android:value="1.0"
+            app:thumbColor="#00CCFF" app:trackColorActive="#00CCFF"
+            app:trackColorInactive="#33FFFFFF"/>
+        <TextView android:id="@+id/tvWfContrastValue"
+            android:layout_width="40dp" android:layout_height="wrap_content"
+            android:text="1.0×" android:textColor="#00CCFF" android:textSize="12sp"
+            android:gravity="end" android:fontFamily="monospace"/>
+    </LinearLayout>
+
+    <!-- Auto-Stretch + Pause in one row -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="6dp">
+
+        <!-- Auto-Stretch (left half) -->
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical">
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Auto-Stretch" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Track range automatically"
+                    android:textColor="#55FFFFFF" android:textSize="10sp"/>
+            </LinearLayout>
+            <Switch android:id="@+id/switchAutoStretch"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        </LinearLayout>
+
+        <!-- Divider -->
+        <View android:layout_width="1dp" android:layout_height="32dp"
+            android:background="#22FFFFFF" android:layout_marginHorizontal="8dp"/>
+
+        <!-- Pause (right half) -->
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical">
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="⏸ Pause" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Freeze waterfall scrolling"
+                    android:textColor="#55FFFFFF" android:textSize="10sp"/>
+            </LinearLayout>
+            <Switch android:id="@+id/switchWfPause"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Time Ruler + Centre Marker in one row -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="6dp">
+
+        <!-- Time Ruler (left half) -->
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical">
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Time Ruler" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Elapsed time on right edge"
+                    android:textColor="#55FFFFFF" android:textSize="10sp"/>
+            </LinearLayout>
+            <Switch android:id="@+id/switchTimeRuler"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:checked="true"/>
+        </LinearLayout>
+
+        <!-- Divider -->
+        <View android:layout_width="1dp" android:layout_height="32dp"
+            android:background="#22FFFFFF" android:layout_marginHorizontal="8dp"/>
+
+        <!-- Centre Marker (right half) -->
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical">
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Centre Marker" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Dashed line at tuned freq"
+                    android:textColor="#55FFFFFF" android:textSize="10sp"/>
+            </LinearLayout>
+            <Switch android:id="@+id/switchCentreMarker"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:checked="true"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ══ FFT ══════════════════════════════════════════════════════════════ -->
+    <View android:layout_width="match_parent" android:layout_height="1dp"
+        android:background="#22FFFFFF" android:layout_marginTop="10dp" android:layout_marginBottom="4dp"/>
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="FFT" android:textColor="#6600CCFF" android:textSize="10sp"
+        android:textAllCaps="true" android:letterSpacing="0.1"
+        android:layout_marginBottom="6dp"/>
+
+    <!-- FFT Size -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical">
+        <TextView android:layout_width="110dp" android:layout_height="wrap_content"
+            android:text="FFT Size" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+        <Spinner android:id="@+id/spinnerFftSize"
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:backgroundTint="#00CCFF"/>
+    </LinearLayout>
+
+    <!-- Decimation -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="8dp">
+        <TextView android:layout_width="110dp" android:layout_height="wrap_content"
+            android:text="Decimation" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+        <Spinner android:id="@+id/spinnerDecimation"
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:backgroundTint="#00CCFF"/>
+    </LinearLayout>
+
+    <!-- Frame Averaging -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="8dp">
+        <LinearLayout android:layout_width="110dp" android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Frame Avg" android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="↓noise by √N dB" android:textColor="#55FFFFFF" android:textSize="10sp"/>
+        </LinearLayout>
+        <Spinner android:id="@+id/spinnerFrameAvg"
+            android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:backgroundTint="#00CCFF"/>
+    </LinearLayout>
+
+</LinearLayout>
+
+</ScrollView>

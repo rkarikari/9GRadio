@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+  <!-- Antenna mast -->
+  <path android:fillColor="#00CCFF"
+        android:pathData="M54,20 L54,88 M46,88 L62,88"/>
+  <!-- Signal waves (stroke-only: fillColor transparent) -->
+  <path android:fillColor="#00000000" android:strokeColor="#00CCFF" android:strokeWidth="3"
+        android:pathData="M38,40 Q30,54 38,68"/>
+  <path android:fillColor="#00000000" android:strokeColor="#00CCFF" android:strokeWidth="3"
+        android:pathData="M70,40 Q78,54 70,68"/>
+  <path android:fillColor="#00000000" android:strokeColor="#0088AA" android:strokeWidth="2"
+        android:pathData="M30,34 Q18,54 30,74"/>
+  <path android:fillColor="#00000000" android:strokeColor="#0088AA" android:strokeWidth="2"
+        android:pathData="M78,34 Q90,54 78,74"/>
+  <!-- Centre dot (tuned signal) — circle as two-arc path -->
+  <path android:fillColor="#FF8800"
+        android:pathData="M54,49 A5,5 0 1,0 54,59 A5,5 0 1,0 54,49 Z"/>
+</vector>

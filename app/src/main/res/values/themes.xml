@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.NineGRadio" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="colorSecondary">@color/colorSecondary</item>
+        <item name="android:windowBackground">@color/bgMain</item>
+        <item name="android:colorBackground">@color/bgMain</item>
+        <item name="android:textColor">@color/textPrimary</item>
+        <item name="android:textColorSecondary">@color/textSecondary</item>
+        <item name="colorSurface">@color/bgSurface</item>
+        <item name="colorOnSurface">@color/textPrimary</item>
+        <item name="colorError">@color/textError</item>
+
+        <!-- Action bar handled by Toolbar in layout, not window decor -->
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+
+        <!-- Chip style -->
+        <item name="chipStyle">@style/NineGRadioChip</item>
+
+        <!-- Slider style -->
+        <item name="sliderStyle">@style/NineGRadioSlider</item>
+    </style>
+
+    <style name="NineGRadioActionBar" parent="Widget.AppCompat.ActionBar">
+        <item name="background">@color/bgSurface</item>
+        <item name="titleTextStyle">@style/NineGRadioActionBarTitle</item>
+    </style>
+
+    <style name="NineGRadioActionBarTitle" parent="TextAppearance.AppCompat.Widget.ActionBar.Title">
+        <item name="android:textColor">@color/textPrimary</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="NineGRadioChip" parent="Widget.MaterialComponents.Chip.Choice">
+        <item name="android:textColor">@color/textAccent</item>
+        <item name="chipBackgroundColor">@color/chipSelected</item>
+        <item name="chipStrokeColor">@color/colorPrimary</item>
+        <item name="chipStrokeWidth">1dp</item>
+        <item name="chipCornerRadius">4dp</item>
+        <item name="chipMinHeight">30dp</item>
+        <item name="android:textSize">12sp</item>
+        <item name="checkedIconVisible">false</item>
+    </style>
+
+    <style name="NineGRadioSlider" parent="Widget.MaterialComponents.Slider">
+        <item name="thumbColor">@color/colorPrimary</item>
+        <item name="trackColorActive">@color/colorPrimary</item>
+        <item name="trackColorInactive">@color/divider</item>
+        <item name="haloColor">#1A00CCFF</item>
+    </style>
+
+    <!-- Dialog style -->
+    <style name="NineGRadioDialog" parent="Theme.MaterialComponents.Dialog">
+        <item name="android:windowBackground">@color/bgCard</item>
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="android:textColor">@color/textPrimary</item>
+        <item name="colorSurface">@color/bgCard</item>
+        <item name="colorOnSurface">@color/textPrimary</item>
+    </style>
+
+    <!-- TextInputLayout style -->
+    <style name="NineGRadioTextInput" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <item name="boxStrokeColor">@color/colorPrimary</item>
+        <item name="hintTextColor">@color/textAccent</item>
+        <item name="android:textColor">@color/textPrimary</item>
+    </style>
+
+    <!-- Preferences style -->
+    <style name="NineGRadioPreference" parent="PreferenceThemeOverlay.v14.Material">
+        <item name="android:background">@color/bgMain</item>
+        <item name="android:textColor">@color/textPrimary</item>
+        <item name="android:textColorSecondary">@color/textSecondary</item>
+        <item name="preferenceStyle">@style/NineGRadioPreferenceItem</item>
+    </style>
+
+    <style name="NineGRadioPreferenceItem" parent="Preference.Material">
+        <item name="android:background">@color/bgSurface</item>
+        <item name="android:layout_marginBottom">1dp</item>
+    </style>
+</resources>

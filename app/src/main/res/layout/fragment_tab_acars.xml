@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tab – ACARS: embedded ACARS message monitor. Shown only when DemodMode.ACARS is active. -->
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:scrollbars="vertical">
+
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="12dp"
+    android:paddingTop="10dp"
+    android:paddingBottom="12dp">
+
+    <!-- Section label -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="ACARS Monitor"
+        android:textColor="#00CCFF"
+        android:textSize="13sp"
+        android:textAllCaps="true"
+        android:letterSpacing="0.1"
+        android:layout_marginBottom="2dp"/>
+
+    <!-- Frequency / mode info -->
+    <TextView
+        android:id="@+id/tvAcarsTabMode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Not active"
+        android:textColor="#66FFFFFF"
+        android:textSize="10sp"
+        android:fontFamily="monospace"
+        android:layout_marginBottom="8dp"
+        android:singleLine="true"
+        android:ellipsize="end"/>
+
+    <!-- Status + message count -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="6dp">
+
+        <TextView
+            android:id="@+id/tvAcarsTabStatus"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Idle"
+            android:textColor="#44FF88"
+            android:textSize="11sp"
+            android:fontFamily="monospace"/>
+
+        <TextView
+            android:id="@+id/tvAcarsTabCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Messages: 0"
+            android:textColor="#FFAA00"
+            android:textSize="11sp"
+            android:fontFamily="monospace"/>
+    </LinearLayout>
+
+    <!-- Divider -->
+    <View android:layout_width="match_parent" android:layout_height="0.5dp"
+        android:background="#33FFFFFF" android:layout_marginBottom="6dp"/>
+
+    <!-- Message log label -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Recent Messages (tap for detail)"
+        android:textColor="#88FFFFFF"
+        android:textSize="10sp"
+        android:layout_marginBottom="4dp"/>
+
+    <!-- Message list (fixed height inside scroll) -->
+    <ListView
+        android:id="@+id/listAcarsTabMessages"
+        android:layout_width="match_parent"
+        android:layout_height="220dp"
+        android:background="#0D1117"
+        android:divider="#22FFFFFF"
+        android:dividerHeight="0.5dp"
+        android:nestedScrollingEnabled="true"/>
+
+</LinearLayout>
+</ScrollView>
