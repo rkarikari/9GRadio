@@ -26,6 +26,7 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.slider.Slider
 import com.google.android.material.snackbar.Snackbar
 import com.radiosport.ninegradio.R
+import com.radiosport.ninegradio.toExactMhzString
 import com.radiosport.ninegradio.data.FrequencyDatabase
 import com.radiosport.ninegradio.data.RecordingMeta
 import org.json.JSONObject
@@ -152,12 +153,122 @@ class MainActivity : AppCompatActivity() {
     private val scanTabHitLog = mutableListOf<String>()
     private val scanTabHitFreqs = mutableListOf<Long>()
     private var scanTabHitAdapter: ArrayAdapter<String>? = null
-    private val scanTabChannelRows = mutableListOf<String>()
-    private val scanTabChannelFreqs = mutableListOf<Long>()
-    private var scanTabChannelAdapter: ArrayAdapter<String>? = null
+    private val scanTabChannelRows = mutableListOf<com.radiosport.ninegradio.scanner.FrequencyScanner.ChannelEntry>()
+    private var scanTabChannelAdapter: ScanChannelTableAdapter? = null
     private var scanTabChannelTableJob: Job? = null
     private var scanTabStatusJob: Job? = null
     private var scanTabHitsJob: Job? = null
+
+    /**
+     * Everything [configureSpectrumForScan] and the scan handlers' own
+     * `svc.setDemodMode` / `svc.setSquelch` calls are about to override,
+     * captured right before a scan/search starts so it can all be put back
+     * exactly as it was once the scan stops.
+     *
+     * This matters because none of those calls go through
+     * [MainViewModel.setDemodMode] (which is what normally snapshots a
+     * mode's settings on the way out) -- scanning deliberately bypasses it so
+     * starting a scan doesn't itself count as "switching modes". But that
+     * also means nothing else will restore these values afterward, and if
+     * the user switches modes *while* the scan-tuned sample rate/decimation/
+     * FFT size/frequency are still live, [MainViewModel.setDemodMode] would
+     * snapshot *those* into the current mode's saved settings, silently
+     * overwriting whatever the user had actually configured for it. Taking
+     * our own snapshot and restoring it the moment the scan ends closes that
+     * window.
+     */
+    private data class ScanRfSnapshot(
+        val centerFreqHz: Long,
+        val sampleRate: Int,
+        val decimation: Int,
+        val fftSize: Int,
+        val frameAveraging: Int,
+        val autoRange: Boolean,
+        val demodMode: DemodMode,
+        val squelchDb: Float,
+        val demodChannelBwHz: Long
+    )
+    private var scanTabPreScanSnapshot: ScanRfSnapshot? = null
+
+    /** Capture the live RF/display state the instant before a scan/search
+     *  starts. No-op (keeps the existing snapshot) if a scan is already
+     *  running, so Search-while-scanning style re-entry can't clobber the
+     *  original pre-scan snapshot with already-scan-tuned values. */
+    private fun captureRfSnapshotBeforeScan() {
+        if (scanTabPreScanSnapshot != null) return
+        val displayPrefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+        scanTabPreScanSnapshot = ScanRfSnapshot(
+            centerFreqHz = viewModel.centerFreqHz.value,
+            sampleRate = viewModel.sampleRate.value,
+            decimation = viewModel.decimation.value,
+            fftSize = viewModel.fftSize.value,
+            frameAveraging = displayPrefs.getString("pref_frame_averaging", "1")?.toIntOrNull() ?: 1,
+            autoRange = displayPrefs.getBoolean("pref_auto_range", false),
+            demodMode = viewModel.demodMode.value,
+            squelchDb = viewModel.squelch.value,
+            demodChannelBwHz = channelHighlightHz(viewModel.demodMode.value, viewModel.ifBandwidthHz.value)
+        )
+    }
+
+    /** Put back everything [captureRfSnapshotBeforeScan] captured. Called
+     *  once a scan/search actually stops (Stop/Reset/Close) -- never mid-scan,
+     *  so pausing doesn't lose the live scan state. Safe to call with no
+     *  snapshot pending (e.g. the tab was closed without ever starting a scan). */
+    private fun restoreRfSnapshotAfterScan() {
+        val snap = scanTabPreScanSnapshot ?: return
+        scanTabPreScanSnapshot = null
+
+        val svc = sdrService
+        svc?.setDemodMode(snap.demodMode)
+        viewModel.setSquelch(snap.squelchDb)
+
+        if (snap.sampleRate != viewModel.sampleRate.value) {
+            viewModel.setSampleRate(snap.sampleRate)
+            val idx = RtlSdrDevice.SAMPLE_RATES.indexOfFirst { it == viewModel.sampleRate.value }
+            if (idx >= 0) {
+                sampleRateLabelsCache.getOrNull(idx)?.let { ctrlViews.tvSampleRateLabel?.text = it }
+                updateSampleRateChips(idx)
+            }
+        }
+        if (snap.decimation != viewModel.decimation.value) {
+            viewModel.setDecimation(snap.decimation)
+            val decimationFactors = listOf(1, 2, 4, 8, 16, 32, 64)
+            decimationFactors.indexOf(snap.decimation).takeIf { it >= 0 }
+                ?.let { ctrlViews.spinnerDecimation?.setSelection(it, false) }
+        }
+        val effectiveRate = viewModel.sampleRate.value / viewModel.decimation.value.coerceAtLeast(1)
+        binding.spectrumView.setSampleRate(effectiveRate)
+        binding.waterfallView.setSampleRate(effectiveRate)
+
+        if (snap.fftSize != viewModel.fftSize.value) {
+            viewModel.setFftSize(snap.fftSize)
+            val fftSizes = listOf(256, 512, 1024, 2048, 4096, 8192)
+            fftSizes.indexOf(snap.fftSize).takeIf { it >= 0 }
+                ?.let { ctrlViews.spinnerFftSize?.setSelection(it, false) }
+        }
+
+        svc?.dspEngine?.fftEngine?.frameAveragingCount = snap.frameAveraging
+        androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+            .edit().putString("pref_frame_averaging", snap.frameAveraging.toString()).apply()
+        val frameAvgValues = listOf(1, 2, 4, 8, 16, 32)
+        frameAvgValues.indexOf(snap.frameAveraging).takeIf { it >= 0 }
+            ?.let { ctrlViews.spinnerFrameAvg?.setSelection(it, false) }
+
+        binding.spectrumView.setAutoRange(snap.autoRange)
+        ctrlViews.switchAutoRange?.isChecked = snap.autoRange
+        androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+            .edit().putBoolean("pref_auto_range", snap.autoRange).apply()
+
+        viewModel.setFrequency(snap.centerFreqHz)
+        binding.spectrumView.setCenterFrequency(hardwareCenterFreqHz(snap.centerFreqHz, snap.demodMode))
+        binding.spectrumView.setHardwareTunedFrequency(trueHardwareCenterFreqHz(snap.centerFreqHz, snap.demodMode))
+        binding.waterfallView.setCenterFrequency(hardwareCenterFreqHz(snap.centerFreqHz, snap.demodMode))
+        binding.waterfallView.setHardwareTunedFrequency(trueHardwareCenterFreqHz(snap.centerFreqHz, snap.demodMode))
+
+        binding.spectrumView.setSquelch(snap.squelchDb)
+        binding.spectrumView.setDemodChannelBandwidth(
+            snap.demodChannelBwHz, channelHighlightSideband(snap.demodMode))
+    }
     private var scanTabScanning = false
     private var scanTabPaused = false
     private var scanTabSearching = false
@@ -422,6 +533,10 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         unregisterReceiver(displayPrefsReceiver)
+        // Safety net: capture whatever is currently in the scan tab's fields
+        // even if the user edited them but never pressed Start/Search before
+        // backgrounding or leaving the app, so those edits aren't lost.
+        if (ctrlViews.listScanTabHits != null) saveLastScanTabSettings()
     }
 
     /**
@@ -2287,6 +2402,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun selectDemodChip(mode: DemodMode) {
+        // Keep the spectrum view's Auto dB Range tier (see
+        // SpectrumView.setDemodMode / AutoRangeTier) in sync with the
+        // actually active protocol every time the UI reflects a mode change
+        // -- this function is the single place every mode-change path
+        // (chip tap, scan-tab restore, memory recall, etc.) already calls to
+        // update the UI, so it's the safest single hook point rather than
+        // patching every viewModel.setDemodMode()/svc.setDemodMode() call
+        // site individually. Done before the chipGroup-null early return so
+        // it still applies even when the Demod tab isn't the one currently
+        // visible.
+        binding.spectrumView.setDemodMode(mode)
         val chipGroup = ctrlViews.chipGroupDemod ?: return
         for (i in 0 until chipGroup.childCount) {
             val chip = chipGroup.getChildAt(i) as? com.google.android.material.chip.Chip ?: continue
@@ -4148,15 +4274,238 @@ class MainActivity : AppCompatActivity() {
     // This is the app's only frequency-scanning UI -- a separate standalone
     // ScannerActivity previously duplicated this same functionality and has
     // been removed to avoid the two implementations drifting out of sync.
+
+    /**
+     * Pick a device sample rate for an upcoming scan.
+     *
+     * [FrequencyScanner] captures one wideband IQ block per hop and detects
+     * every channel that falls inside it (see [FrequencyScanner.captureBlock]),
+     * exactly like SDRangel's own Frequency Scanner plugin, whose docs note
+     * it "will typically try to set the device centre frequency in order to
+     * scan as many frequencies simultaneously as possible" --
+     * https://github.com/f4exb/sdrangel/blob/master/plugins/channelrx/freqscanner/readme.md.
+     * The wider the capture, the fewer retunes are needed to cover
+     * [startHz]..[stopHz], so the sweep both completes faster and spends more
+     * time per hop dwelling on each block (better sensitivity per retune).
+     *
+     * Pick the smallest available rate that both (a) covers the whole
+     * requested range in one block if that range is modest, and (b) still
+     * spans a healthy number of channel steps (at least 40) so multiple
+     * candidate channels are actually being scanned per hop rather than one at
+     * a time. Capped at the device's fastest supported rate.
+     */
+    private fun chooseScanSampleRate(startHz: Long, stopHz: Long, stepHz: Long): Int {
+        val range = (stopHz - startHz).coerceAtLeast(1L)
+        val target = minOf(range, maxOf(stepHz * 40L, 1_000_000L))
+        return RtlSdrDevice.SAMPLE_RATES.firstOrNull { it >= target }
+            ?: RtlSdrDevice.SAMPLE_RATES.last()
+    }
+
+    /**
+     * Pick the smallest FFT size that still resolves individual scan
+     * channels cleanly. A bin wider than the channel step would blur two
+     * adjacent channels together (a hit on one frequency reading as if it
+     * were on its neighbour too); a much narrower bin than necessary only
+     * burns CPU/time on every capture without adding any real accuracy for
+     * this purpose. Target a bin width of at most a quarter of [stepHz], the
+     * smallest FFT size in the app's supported set that achieves it.
+     */
+    private fun chooseScanFftSize(sampleRateHz: Int, stepHz: Long): Int {
+        val fftSizes = intArrayOf(256, 512, 1024, 2048, 4096, 8192)
+        val targetBinHz = maxOf(stepHz / 4.0, 1.0)
+        return fftSizes.firstOrNull { sampleRateHz.toDouble() / it <= targetBinHz } ?: fftSizes.last()
+    }
+
+    /**
+     * Pick a frame-averaging count that smooths the noise floor without
+     * blurring together samples from different frequencies. The spectrum
+     * only stays on one retuned frequency for [dwellMs] before the scanner
+     * hops on, so averaging must fit comfortably inside that window (at
+     * ~15 fps / ~66 ms per frame) or it will still be blending in frames
+     * from the *previous* hop's frequency when the next hit is evaluated.
+     * Short dwells (fast search sweeps) get no averaging at all; longer
+     * dwells get progressively more, capped well under what the dwell time
+     * can actually contain.
+     */
+    /**
+     * Pick a frame-averaging count that actually gets used for the configured
+     * dwell time, instead of silently defaulting to "off" (1) for anything
+     * short of ~8 live-spectrum frames per dwell.  At the ~66 ms/frame the
+     * live spectrum runs at, a typical 200 ms scan dwell only fits ~3 frames
+     * -- the previous >=8/>=4 thresholds meant averaging stayed OFF for that
+     * (and shorter) dwell times, so Auto dB Range's noise-floor read was
+     * never actually sanitized by Frame Avg. the way the scan tab intended.
+     * Lowered so even a short dwell still gets at least 2x averaging.
+     *
+     * This is now safe to apply aggressively because [FftEngine.resetSpectrumAveraging]
+     * is called on every scanner retune (see FrequencyScanner's onRetune hook,
+     * wired below), which discards any partial accumulation from the
+     * *previous* frequency -- frames from different hops can no longer be
+     * incoherently blended together, so a higher averaging count only ever
+     * cleans up noise within a single, stable-frequency dwell.
+     */
+    private fun chooseScanFrameAveraging(dwellMs: Long): Int {
+        val framesPerDwell = dwellMs / 66L
+        return when {
+            framesPerDwell >= 6 -> 4
+            framesPerDwell >= 2 -> 2
+            else -> 1
+        }
+    }
+
+    /**
+     * Auto-configure the live spectrum/waterfall so they accurately reflect
+     * what's about to be scanned: a sample rate wide enough to show several
+     * channel steps at once (see [chooseScanSampleRate]), an initial center
+     * frequency matching the very first capture block
+     * [FrequencyScanner] will actually tune to (half a bandwidth into the
+     * range, mirroring its own startup math), and the configured squelch
+     * threshold drawn as the spectrum's squelch line. Called once, right
+     * before a scan/search starts -- the sweep's own retunes are then
+     * mirrored to the display live via [attachScanTabCollectors].
+     *
+     * Also tunes the rest of the display pipeline for scanning specifically,
+     * rather than leaving whatever the user last picked for manual listening:
+     *   - FFT size:      big enough to resolve individual channels ([chooseScanFftSize]).
+     *   - Decimation:    forced off, so the displayed bandwidth always matches
+     *                    the scanner's actual capture width -- a decimated
+     *                    view would silently hide part of every block.
+     *   - Frame average: light, dwell-proportional smoothing to cut noise
+     *                    without blurring frequencies together ([chooseScanFrameAveraging]).
+     *   - Auto dB range: turned on, since a sweep crosses bands with very
+     *                    different noise floors/activity levels that no
+     *                    single fixed dB range would suit for all of them.
+     */
+    private fun configureSpectrumForScan(startHz: Long, stopHz: Long, stepHz: Long, sqlDb: Float, dwellMs: Long) {
+        val rate = chooseScanSampleRate(startHz, stopHz, stepHz)
+        if (rate != viewModel.sampleRate.value) {
+            viewModel.setSampleRate(rate)
+            val idx = RtlSdrDevice.SAMPLE_RATES.indexOfFirst { it == viewModel.sampleRate.value }
+            if (idx >= 0) {
+                sampleRateLabelsCache.getOrNull(idx)?.let { ctrlViews.tvSampleRateLabel?.text = it }
+                updateSampleRateChips(idx)
+            }
+        }
+
+        // Decimation off: the displayed bandwidth must match the scanner's
+        // actual capture width so nothing it's inspecting is hidden from view.
+        if (viewModel.decimation.value != 1) {
+            viewModel.setDecimation(1)
+            val decimationFactors = listOf(1, 2, 4, 8, 16, 32, 64)
+            ctrlViews.spinnerDecimation?.setSelection(decimationFactors.indexOf(1), false)
+        }
+        val effectiveRate = viewModel.sampleRate.value / viewModel.decimation.value.coerceAtLeast(1)
+        binding.spectrumView.setSampleRate(effectiveRate)
+        binding.waterfallView.setSampleRate(effectiveRate)
+
+        val fftSize = chooseScanFftSize(effectiveRate, stepHz)
+        if (fftSize != viewModel.fftSize.value) {
+            viewModel.setFftSize(fftSize)
+            val fftSizes = listOf(256, 512, 1024, 2048, 4096, 8192)
+            fftSizes.indexOf(fftSize).takeIf { it >= 0 }
+                ?.let { ctrlViews.spinnerFftSize?.setSelection(it, false) }
+        }
+
+        val frameAvg = chooseScanFrameAveraging(dwellMs)
+        sdrService?.dspEngine?.fftEngine?.frameAveragingCount = frameAvg
+        androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+            .edit().putString("pref_frame_averaging", frameAvg.toString()).apply()
+        val frameAvgValues = listOf(1, 2, 4, 8, 16, 32)
+        frameAvgValues.indexOf(frameAvg).takeIf { it >= 0 }
+            ?.let { ctrlViews.spinnerFrameAvg?.setSelection(it, false) }
+
+        binding.spectrumView.setAutoRange(true)
+        ctrlViews.switchAutoRange?.isChecked = true
+        androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+            .edit().putBoolean("pref_auto_range", true).apply()
+
+        // Same "half a bandwidth into the range" starting point FrequencyScanner
+        // itself uses, so the very first frame drawn already matches reality
+        // instead of showing wherever the radio happened to be tuned before
+        // Start Scan was pressed.
+        val initialCenterHz = minOf(startHz + viewModel.sampleRate.value / 2, stopHz)
+        viewModel.setFrequency(initialCenterHz)
+        binding.spectrumView.setCenterFrequency(hardwareCenterFreqHz(initialCenterHz))
+        binding.spectrumView.setHardwareTunedFrequency(trueHardwareCenterFreqHz(initialCenterHz))
+        binding.waterfallView.setCenterFrequency(hardwareCenterFreqHz(initialCenterHz))
+        binding.waterfallView.setHardwareTunedFrequency(trueHardwareCenterFreqHz(initialCenterHz))
+
+        binding.spectrumView.setSquelch(sqlDb)
+        binding.spectrumView.setDemodChannelBandwidth(stepHz)
+    }
+
+    /** Out-of-the-box scan tab defaults, used only the very first time the app
+     *  runs (or if the persisted last-used settings are ever cleared/corrupt).
+     *  After that, [restoreLastScanTabSettings] / [saveLastScanTabSettings]
+     *  take over and the user's own last configuration wins. */
+    private object ScanTabDefaults {
+        const val START_MHZ = "446.00625"
+        const val STOP_MHZ = "446.19375"
+        const val STEP_HZ = "12500"
+        const val SQUELCH_DB = "-60"
+        const val DWELL_MS = "200"
+    }
+
+    /** SharedPreferences backing the *automatic* "last used scan settings"
+     *  persistence -- distinct from the user-managed 5-slot memory bank
+     *  (`scan_memory_slots`) further down in [setupScanTab]. */
+    private val scanTabLastSettingsPrefs by lazy {
+        getSharedPreferences("scan_last_settings", MODE_PRIVATE)
+    }
+
+    private fun saveLastScanTabSettings() {
+        scanTabLastSettingsPrefs.edit()
+            .putString("startMhz", ctrlViews.etScanTabStart?.text?.toString())
+            .putString("stopMhz", ctrlViews.etScanTabStop?.text?.toString())
+            .putString("stepHz", ctrlViews.etScanTabStep?.text?.toString())
+            .putString("squelchDb", ctrlViews.etScanTabSquelch?.text?.toString())
+            .putString("dwellMs", ctrlViews.etScanTabDwell?.text?.toString())
+            .putInt("modeIdx", ctrlViews.spinnerScanTabMode?.selectedItemPosition ?: 0)
+            .putBoolean("scanDown", ctrlViews.switchScanTabDirection?.isChecked ?: false)
+            .putBoolean("adaptive", ctrlViews.switchScanTabAdaptive?.isChecked ?: false)
+            .putBoolean("holdOnSignal", ctrlViews.switchScanTabHoldOnSignal?.isChecked ?: true)
+            .apply()
+    }
+
+    private fun restoreLastScanTabSettings() {
+        val prefs = scanTabLastSettingsPrefs
+        ctrlViews.etScanTabStart?.setText(prefs.getString("startMhz", ScanTabDefaults.START_MHZ))
+        ctrlViews.etScanTabStop?.setText(prefs.getString("stopMhz", ScanTabDefaults.STOP_MHZ))
+        ctrlViews.etScanTabStep?.setText(prefs.getString("stepHz", ScanTabDefaults.STEP_HZ))
+        ctrlViews.etScanTabSquelch?.setText(prefs.getString("squelchDb", ScanTabDefaults.SQUELCH_DB))
+        ctrlViews.etScanTabDwell?.setText(prefs.getString("dwellMs", ScanTabDefaults.DWELL_MS))
+        ctrlViews.spinnerScanTabMode?.setSelection(prefs.getInt("modeIdx", viewModel.demodMode.value.ordinal))
+        ctrlViews.switchScanTabDirection?.isChecked = prefs.getBoolean("scanDown", false)
+        ctrlViews.switchScanTabAdaptive?.isChecked = prefs.getBoolean("adaptive", false)
+        ctrlViews.switchScanTabHoldOnSignal?.isChecked = prefs.getBoolean("holdOnSignal", true)
+    }
+
     private fun setupScanTab() {
         val listView = ctrlViews.listScanTabHits ?: return
+
+        // Scanner details (start/stop/step/squelch/dwell/mode/direction/adaptive/
+        // memory) are collapsed by default; only the toggle header, Start Scan
+        // controls, and status/results are visible until the user expands it.
+        ctrlViews.llScanTabDetails?.isVisible = false
+        ctrlViews.tvScanTabDetailsChevron?.text = "\u25B6"
+        ctrlViews.rowScanTabDetailsToggle?.setOnClickListener {
+            val details = ctrlViews.llScanTabDetails
+            val expanded = details?.isVisible == true
+            details?.isVisible = !expanded
+            ctrlViews.tvScanTabDetailsChevron?.text = if (expanded) "\u25B6" else "\u25BC"
+        }
 
         val modes = DemodMode.values().map { it.displayName }
         ctrlViews.spinnerScanTabMode?.adapter =
             ArrayAdapter(this, android.R.layout.simple_spinner_item, modes)
-        ctrlViews.spinnerScanTabMode?.setSelection(viewModel.demodMode.value.ordinal)
 
-        ctrlViews.etScanTabStart?.setText("%.4f".format(viewModel.centerFreqHz.value / 1e6))
+        // Restore whatever scan parameters were last used (separate from the
+        // manual 5-slot memory bank above -- this is the *automatic* "keep my
+        // last scan setup" persistence). On first-ever launch, when nothing
+        // has been saved yet, fall back to sensible defaults rather than
+        // leaving the fields at whatever hardcoded values used to be baked
+        // into the layout.
+        restoreLastScanTabSettings()
 
         // Scan parameter memory slots -- stash/recall a full parameter set so the user
         // doesn't have to retype range/step/squelch/dwell/mode each session.
@@ -4189,6 +4538,7 @@ class MainActivity : AppCompatActivity() {
                 put("modeIdx", ctrlViews.spinnerScanTabMode?.selectedItemPosition ?: 0)
                 put("scanDown", ctrlViews.switchScanTabDirection?.isChecked ?: false)
                 put("adaptive", ctrlViews.switchScanTabAdaptive?.isChecked ?: false)
+                put("holdOnSignal", ctrlViews.switchScanTabHoldOnSignal?.isChecked ?: true)
             }
             scanTabMemPrefs.edit().putString("slot_$slot", params.toString()).apply()
             refreshScanTabMemSlotLabels()
@@ -4212,6 +4562,7 @@ class MainActivity : AppCompatActivity() {
                 ctrlViews.spinnerScanTabMode?.setSelection(params.optInt("modeIdx", 0))
                 ctrlViews.switchScanTabDirection?.isChecked = params.optBoolean("scanDown", false)
                 ctrlViews.switchScanTabAdaptive?.isChecked = params.optBoolean("adaptive", false)
+                ctrlViews.switchScanTabHoldOnSignal?.isChecked = params.optBoolean("holdOnSignal", true)
                 Snackbar.make(binding.root, "Loaded scan parameters from slot $slot", Snackbar.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 Snackbar.make(binding.root, "Slot $slot is corrupted", Snackbar.LENGTH_SHORT).show()
@@ -4227,11 +4578,11 @@ class MainActivity : AppCompatActivity() {
         listView.setOnItemLongClickListener { _, _, pos, _ ->
             val hz = scanTabHitFreqs.getOrNull(pos) ?: return@setOnItemLongClickListener true
             AlertDialog.Builder(this)
-                .setTitle("${"%.4f".format(hz / 1e6)} MHz")
+                .setTitle("${hz.toExactMhzString()} MHz")
                 .setMessage("Lock this frequency out of the current scan? It will be skipped until the scan is stopped.")
                 .setPositiveButton("Lock out") { _, _ ->
                     scanTabScanner?.lockout(hz)
-                    Snackbar.make(binding.root, "Locked out ${"%.4f".format(hz / 1e6)} MHz", Snackbar.LENGTH_SHORT).show()
+                    Snackbar.make(binding.root, "Locked out ${hz.toExactMhzString()} MHz", Snackbar.LENGTH_SHORT).show()
                 }
                 .setNegativeButton("Cancel", null)
                 .show()
@@ -4241,22 +4592,24 @@ class MainActivity : AppCompatActivity() {
         // Tabulated channel view -- one row per configured channel,
         // refreshed in place as the scan runs (see attachScanTabCollectors'
         // collector on sc.channelTable below), rather than an append-only
-        // log like listScanTabHits above.
+        // log like listScanTabHits above. Uses a dedicated multi-column
+        // adapter (ScanChannelTableAdapter) instead of a plain string list
+        // so each field lines up under its own labeled column.
         val channelListView = ctrlViews.listScanTabChannelTable
-        scanTabChannelAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, scanTabChannelRows)
+        scanTabChannelAdapter = ScanChannelTableAdapter(this, scanTabChannelRows)
         channelListView?.adapter = scanTabChannelAdapter
         channelListView?.setOnItemClickListener { _, _, pos, _ ->
-            val hz = scanTabChannelFreqs.getOrNull(pos) ?: return@setOnItemClickListener
+            val hz = scanTabChannelRows.getOrNull(pos)?.freqHz ?: return@setOnItemClickListener
             viewModel.setFrequency(hz)
         }
         channelListView?.setOnItemLongClickListener { _, _, pos, _ ->
-            val hz = scanTabChannelFreqs.getOrNull(pos) ?: return@setOnItemLongClickListener true
+            val hz = scanTabChannelRows.getOrNull(pos)?.freqHz ?: return@setOnItemLongClickListener true
             AlertDialog.Builder(this)
-                .setTitle("${"%.4f".format(hz / 1e6)} MHz")
+                .setTitle("${hz.toExactMhzString()} MHz")
                 .setMessage("Lock this frequency out of the current scan? It will be skipped until the scan is stopped.")
                 .setPositiveButton("Lock out") { _, _ ->
                     scanTabScanner?.lockout(hz)
-                    Snackbar.make(binding.root, "Locked out ${"%.4f".format(hz / 1e6)} MHz", Snackbar.LENGTH_SHORT).show()
+                    Snackbar.make(binding.root, "Locked out ${hz.toExactMhzString()} MHz", Snackbar.LENGTH_SHORT).show()
                 }
                 .setNegativeButton("Cancel", null)
                 .show()
@@ -4309,23 +4662,58 @@ class MainActivity : AppCompatActivity() {
             scanTabStatusJob = lifecycleScope.launch {
                 sc.status.collectLatest { status ->
                     ctrlViews.progressScanTab?.progress = (status.progress * 100).toInt()
-                    ctrlViews.tvScanTabCurrentFreq?.text = "${"%.4f".format(status.currentFreqHz / 1e6)} MHz"
+                    ctrlViews.tvScanTabCurrentFreq?.text = "${status.currentFreqHz.toExactMhzString()} MHz"
                     ctrlViews.tvScanTabHits?.text = "Hits: ${status.hitsFound}"
                     ctrlViews.tvScanTabSignal?.text = "${"%.1f".format(status.signalDb)} dB"
                     ctrlViews.tvScanTabNoiseFloor?.text = "Floor: ${"%.1f".format(status.noiseFloorDb)} dB"
                     ctrlViews.tvScanTabRate?.text = "${"%.1f".format(status.channelsPerSecond)} ch/s"
+
+                    // FrequencyScanner retunes the raw IqSource directly every
+                    // hop (see captureBlock), so the spectrum/waterfall's own
+                    // notion of "where the hardware is" goes stale the moment
+                    // a scan starts unless it's told about every retune too.
+                    // These are display-only setters -- they don't re-issue a
+                    // hardware tune command themselves -- so they can't race
+                    // with the scanner, which is the sole owner of the device
+                    // frequency while a scan is running.
+                    if (status.currentFreqHz > 0L) {
+                        binding.spectrumView.setCenterFrequency(hardwareCenterFreqHz(status.currentFreqHz))
+                        binding.spectrumView.setHardwareTunedFrequency(trueHardwareCenterFreqHz(status.currentFreqHz))
+                        binding.waterfallView.setCenterFrequency(hardwareCenterFreqHz(status.currentFreqHz))
+                        binding.waterfallView.setHardwareTunedFrequency(trueHardwareCenterFreqHz(status.currentFreqHz))
+                    }
+                    if (status.activeFreqHz > 0L) {
+                        binding.spectrumView.setDemodDialFrequency(status.activeFreqHz)
+                    }
                 }
             }
             scanTabHitsJob?.cancel()
             scanTabHitsJob = lifecycleScope.launch {
                 sc.hits.collect { hit ->
+                    // FrequencyScanner retunes the raw IqSource directly for its own
+                    // wideband FFT captures (see FrequencyScanner.captureBlock), entirely
+                    // bypassing DspEngine.setCarrierFrequency. That means the *live* demod
+                    // chain (DspEngine -> AudioEngine) was never actually told to move to
+                    // the frequency the scanner just declared a hit on -- it kept
+                    // demodulating whatever dial frequency was tuned before Start Scan was
+                    // pressed. The scan tab's spectrum/waterfall dial cosmetically jumped to
+                    // the hit (setDemodDialFrequency above) making it *look* locked, but no
+                    // audio ever came out because the hardware carrier/BFO math in DspEngine
+                    // never got the retune. Route the hit frequency through
+                    // RtlSdrService.setFrequency() (-> DspEngine.setCarrierFrequency()) so
+                    // the live receiver actually tunes there and decodes audio while the
+                    // scanner dwells on this hit, matching how real scanners (and e.g.
+                    // SDRangel's channel-follows-detection behaviour) sync their live
+                    // demodulator to whatever the scan engine just found.
+                    sdrService?.setFrequency(hit.freqHz)
+
                     val ts = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(hit.timestampMs))
                     val tag = when (hit.source) {
                         com.radiosport.ninegradio.scanner.FrequencyScanner.HitSource.PRIORITY -> " ★"
                         com.radiosport.ninegradio.scanner.FrequencyScanner.HitSource.SEARCH -> " ?"
                         else -> ""
                     }
-                    val entry = "[$ts]  ${"%.4f".format(hit.freqHz / 1e6)} MHz  " +
+                    val entry = "[$ts]  ${hit.freqHz.toExactMhzString()} MHz  " +
                         "${"%.0f".format(hit.signalDb)}dB$tag"
                     scanTabHitLog.add(0, entry)
                     scanTabHitFreqs.add(0, hit.freqHz)
@@ -4355,19 +4743,7 @@ class MainActivity : AppCompatActivity() {
             scanTabChannelTableJob = lifecycleScope.launch {
                 sc.channelTable.collectLatest { rows ->
                     scanTabChannelRows.clear()
-                    scanTabChannelFreqs.clear()
-                    for (row in rows) {
-                        val activeMark = if (row.active) "\u25CF " else "\u25CB "
-                        val ageSec = if (row.lastUpdatedMs > 0)
-                            (System.currentTimeMillis() - row.lastUpdatedMs) / 1000
-                        else null
-                        val powerText = if (row.lastUpdatedMs > 0) "${"%.1f".format(row.lastPowerDb)}dB" else "---"
-                        val hitsText = if (row.hitCount > 0) " hits:${row.hitCount}" else ""
-                        val ageText = if (ageSec != null) " (${ageSec}s ago)" else " (never)"
-                        val entry = "$activeMark${"%.4f".format(row.freqHz / 1e6)} MHz  $powerText$hitsText$ageText"
-                        scanTabChannelRows.add(entry)
-                        scanTabChannelFreqs.add(row.freqHz)
-                    }
+                    scanTabChannelRows.addAll(rows)
                     scanTabChannelAdapter?.notifyDataSetChanged()
                 }
             }
@@ -4391,6 +4767,13 @@ class MainActivity : AppCompatActivity() {
                 val modeIdx = ctrlViews.spinnerScanTabMode?.selectedItemPosition ?: 0
                 val mode    = DemodMode.values().getOrElse(modeIdx) { DemodMode.NFM }
                 val adaptive = ctrlViews.switchScanTabAdaptive?.isChecked ?: false
+                val holdOnSignal = ctrlViews.switchScanTabHoldOnSignal?.isChecked ?: true
+
+                // Remember these as the "last used" scan settings so they're
+                // restored automatically next time the scan tab is opened,
+                // regardless of whether the user ever touches the manual
+                // memory-slot bank above.
+                saveLastScanTabSettings()
 
                 // The scanner retunes the raw IqSource directly (bypassing
                 // DspEngine.setCarrierFrequency), but DspEngine keeps demodulating
@@ -4403,11 +4786,19 @@ class MainActivity : AppCompatActivity() {
                 // detection threshold. Apply the scan's mode/squelch to the live
                 // demod chain before the sweep starts so audio on a hit is
                 // actually correct for the mode the user configured.
+                captureRfSnapshotBeforeScan()
                 svc.setDemodMode(mode)
                 svc.setSquelch(sqlDb)
 
+                configureSpectrumForScan(snappedStartHz, stopHz, stepHz, sqlDb, dwellMs)
+
                 scanTabScanner = com.radiosport.ninegradio.scanner.FrequencyScanner(
-                    source, signalLevelProvider = signalLevelProviderFor(svc, source)
+                    source, signalLevelProvider = signalLevelProviderFor(svc, source),
+                    // Keep the live spectrum's frame averaging/smoothing from
+                    // blending frames across the scanner's retunes -- see
+                    // FftEngine.resetSpectrumAveraging() for why that matters
+                    // to Auto dB Range specifically.
+                    onRetune = { svc.dspEngine?.fftEngine?.resetSpectrumAveraging() }
                 ).also { sc ->
                     sc.startScan(com.radiosport.ninegradio.scanner.FrequencyScanner.ScanConfig(
                         startFreqHz = snappedStartHz,
@@ -4415,6 +4806,7 @@ class MainActivity : AppCompatActivity() {
                         stepHz = stepHz,
                         squelchDb = sqlDb,
                         adaptiveSquelch = adaptive,
+                        holdOnSignal = holdOnSignal,
                         dwellTimeMs = dwellMs,
                         mode = mode,
                         scanUp = !(ctrlViews.switchScanTabDirection?.isChecked ?: false),
@@ -4432,6 +4824,7 @@ class MainActivity : AppCompatActivity() {
                 scanTabScanner = null
                 ctrlViews.btnScanTabSearch?.isEnabled = true
                 resetScanTabControls()
+                restoreRfSnapshotAfterScan()
             }
         }
 
@@ -4463,14 +4856,25 @@ class MainActivity : AppCompatActivity() {
                 val sqlDb   = ctrlViews.etScanTabSquelch?.text?.toString()?.toFloatOrNull() ?: -80f
                 val adaptive = ctrlViews.switchScanTabAdaptive?.isChecked ?: false
 
+                saveLastScanTabSettings()
+
                 // See the matching comment in the Start Scan handler: keep the
                 // live demod chain in sync with what the scan tab is configured
                 // for, so audio on a hit is intelligible.
+                captureRfSnapshotBeforeScan()
                 svc.setDemodMode(mode)
                 svc.setSquelch(sqlDb)
 
+                // Search mode has no user-facing step field; it hunts within
+                // whatever channel raster FrequencyScanner's search default
+                // uses, so fall back to the regular scan tab's step field
+                // (or a sane default) purely to size the capture width below.
+                val searchStepHz = ctrlViews.etScanTabStep?.text?.toString()?.toLongOrNull() ?: 12_500L
+                configureSpectrumForScan(startHz, stopHz, searchStepHz, sqlDb, dwellMs = 40L)
+
                 scanTabScanner = com.radiosport.ninegradio.scanner.FrequencyScanner(
-                    source, signalLevelProvider = signalLevelProviderFor(svc, source)
+                    source, signalLevelProvider = signalLevelProviderFor(svc, source),
+                    onRetune = { svc.dspEngine?.fftEngine?.resetSpectrumAveraging() }
                 ).also { sc ->
                     sc.startSearch(
                         startFreqHz = startHz, stopFreqHz = stopHz, mode = mode,
@@ -4488,6 +4892,7 @@ class MainActivity : AppCompatActivity() {
                 scanTabScanner = null
                 ctrlViews.btnScanTabStartStop?.isEnabled = true
                 resetScanTabControls()
+                restoreRfSnapshotAfterScan()
             }
         }
 
@@ -4499,6 +4904,7 @@ class MainActivity : AppCompatActivity() {
             ctrlViews.btnScanTabStartStop?.isEnabled = true
             ctrlViews.btnScanTabSearch?.isEnabled = true
             resetScanTabControls()
+            restoreRfSnapshotAfterScan()
 
             // Clear the scan results list.
             scanTabHitLog.clear()
@@ -4507,7 +4913,6 @@ class MainActivity : AppCompatActivity() {
 
             // Clear the tabulated channel view too.
             scanTabChannelRows.clear()
-            scanTabChannelFreqs.clear()
             scanTabChannelAdapter?.notifyDataSetChanged()
 
             // Reset the live status readouts.
@@ -4533,7 +4938,7 @@ class MainActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             val message = top.joinToString("\n") { (hz, count) ->
-                "${"%.4f".format(hz / 1e6)} MHz  —  $count hit${if (count == 1) "" else "s"}"
+                "${hz.toExactMhzString()} MHz  —  $count hit${if (count == 1) "" else "s"}"
             }
             AlertDialog.Builder(this)
                 .setTitle("Busiest Frequencies")
@@ -4555,7 +4960,7 @@ class MainActivity : AppCompatActivity() {
         val scanTabIndex = ControlsPagerAdapter.TAB_SCAN
         tabLayout.getTabAt(scanTabIndex)?.view?.visibility = android.view.View.VISIBLE
         binding.controlViewPager.setCurrentItem(scanTabIndex, true)
-        ctrlViews.etScanTabStart?.setText("%.4f".format(viewModel.centerFreqHz.value / 1e6))
+        ctrlViews.etScanTabStart?.setText(viewModel.centerFreqHz.value.toExactMhzString())
     }
 
     /**
@@ -4572,6 +4977,7 @@ class MainActivity : AppCompatActivity() {
         scanTabScanning = false
         scanTabPaused = false
         scanTabSearching = false
+        restoreRfSnapshotAfterScan()
         ctrlViews.btnScanTabStartStop?.text = "Start Scan"
         ctrlViews.btnScanTabPause?.isVisible = false
         ctrlViews.progressScanTab?.isVisible = false
@@ -4601,3 +5007,50 @@ private fun Intent.usbDevice(): UsbDevice? =
     else
         @Suppress("DEPRECATION")
         getParcelableExtra(UsbManager.EXTRA_DEVICE)
+
+/**
+ * Adapter for the scan tab's tabulated channel view (see FrequencyScanner's
+ * `channelTable`). Binds each [com.radiosport.ninegradio.scanner.FrequencyScanner.ChannelEntry]
+ * field to its own fixed-width column in item_scan_channel_row.xml, rather
+ * than flattening the row into one string — so frequency, power, floor,
+ * hits, and age each stay in their own labeled column (matching the header
+ * in item_scan_channel_header.xml) instead of running together.
+ */
+private class ScanChannelTableAdapter(
+    context: android.content.Context,
+    rows: List<com.radiosport.ninegradio.scanner.FrequencyScanner.ChannelEntry>
+) : ArrayAdapter<com.radiosport.ninegradio.scanner.FrequencyScanner.ChannelEntry>(
+    context, R.layout.item_scan_channel_row, rows
+) {
+    private class ViewHolder(view: View) {
+        val status: TextView = view.findViewById(R.id.tvColStatus)
+        val freq: TextView = view.findViewById(R.id.tvColFreq)
+        val power: TextView = view.findViewById(R.id.tvColPower)
+        val floor: TextView = view.findViewById(R.id.tvColFloor)
+        val hits: TextView = view.findViewById(R.id.tvColHits)
+        val age: TextView = view.findViewById(R.id.tvColAge)
+    }
+
+    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+        val view = convertView ?: LayoutInflater.from(context)
+            .inflate(R.layout.item_scan_channel_row, parent, false)
+        val holder = (view.tag as? ViewHolder) ?: ViewHolder(view).also { view.tag = it }
+        val row = getItem(position) ?: return view
+
+        val measured = row.lastUpdatedMs > 0L
+        holder.status.text = if (row.active) "\u25CF" else "\u25CB"
+        holder.status.setTextColor(if (row.active) 0xFF44FF44.toInt() else 0xFF666666.toInt())
+        holder.freq.text = row.freqHz.toExactMhzString()
+        holder.power.text = if (measured) "%.1f".format(row.lastPowerDb) else "---"
+        holder.floor.text = if (measured) "%.1f".format(row.lastNoiseFloorDb) else "---"
+        holder.hits.text = row.hitCount.toString()
+        holder.age.text = if (measured)
+            "${(System.currentTimeMillis() - row.lastUpdatedMs) / 1000}s"
+        else "never"
+        // Highlight the whole row while it's actively above threshold, same
+        // sense as the ● marker, so an active channel is easy to spot at a
+        // glance in a long table.
+        view.setBackgroundColor(if (row.active) 0x332C6E2E else 0x0012161C)
+        return view
+    }
+}

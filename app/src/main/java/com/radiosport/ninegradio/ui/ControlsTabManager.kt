@@ -162,6 +162,9 @@ class ControlsTabManager(private val adapter: ControlsPagerAdapter) {
     // ── Scan tab ──────────────────────────────────────────────────────────────
     private fun scanView() = adapter.getViewAt(ControlsPagerAdapter.TAB_SCAN)
 
+    val rowScanTabDetailsToggle: LinearLayout? get() = scanView()?.findViewById(R.id.rowScanTabDetailsToggle)
+    val llScanTabDetails:        LinearLayout? get() = scanView()?.findViewById(R.id.llScanTabDetails)
+    val tvScanTabDetailsChevron: TextView?     get() = scanView()?.findViewById(R.id.tvScanTabDetailsChevron)
     val etScanTabStart:        android.widget.EditText? get() = scanView()?.findViewById(R.id.etScanTabStart)
     val etScanTabStop:         android.widget.EditText? get() = scanView()?.findViewById(R.id.etScanTabStop)
     val etScanTabStep:         android.widget.EditText? get() = scanView()?.findViewById(R.id.etScanTabStep)
@@ -170,6 +173,7 @@ class ControlsTabManager(private val adapter: ControlsPagerAdapter) {
     val spinnerScanTabMode:    Spinner?  get() = scanView()?.findViewById(R.id.spinnerScanTabMode)
     val switchScanTabDirection: Switch?  get() = scanView()?.findViewById(R.id.switchScanTabDirection)
     val switchScanTabAdaptive:  Switch?  get() = scanView()?.findViewById(R.id.switchScanTabAdaptive)
+    val switchScanTabHoldOnSignal: Switch? get() = scanView()?.findViewById(R.id.switchScanTabHoldOnSignal)
     val btnScanTabStartStop:   android.widget.Button? get() = scanView()?.findViewById(R.id.btnScanTabStartStop)
     val btnScanTabReset:       android.widget.Button? get() = scanView()?.findViewById(R.id.btnScanTabReset)
     val spinnerScanTabMemorySlot: Spinner? get() = scanView()?.findViewById(R.id.spinnerScanTabMemorySlot)

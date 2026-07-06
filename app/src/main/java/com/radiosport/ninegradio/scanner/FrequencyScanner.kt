@@ -55,7 +55,18 @@ import kotlin.math.roundToLong
  */
 class FrequencyScanner(
     private val device: IqSource,
-    private val signalLevelProvider: (() -> Float)? = null
+    private val signalLevelProvider: (() -> Float)? = null,
+    /**
+     * Invoked with the new frequency immediately after every hardware retune
+     * this scanner performs (in [captureBlock] and [sampleSignal]). Wired by
+     * the caller to [com.radiosport.ninegradio.dsp.FftEngine.resetSpectrumAveraging]
+     * on the *live* spectrum's FFT engine (not this class's own private
+     * [fftEngine], which is a separate, scan-only instance) so that engine's
+     * frame averaging / smoothing never blends frames captured at two
+     * different frequencies together across a hop -- see that method's doc
+     * comment for why that matters for Auto dB Range.
+     */
+    private val onRetune: ((Long) -> Unit)? = null
 ) {
 
     companion object {
@@ -71,7 +82,10 @@ class FrequencyScanner(
 
         /** Max time to wait for a fresh IQ buffer before giving up on a
          *  capture (guards against a stalled/disconnected source hanging the
-         *  scan loop forever). */
+         *  scan loop forever). This bounds the *entire* [captureBlock] call,
+         *  which now waits for [SCAN_BLOCK_AVERAGES] + 1 buffers (one
+         *  discarded post-retune buffer plus the averaged frames), so it must
+         *  scale with that count rather than assuming a single buffer. */
         private const val IQ_CAPTURE_TIMEOUT_MS = 250L
 
         /** Channel bandwidth assumed when averaging bins around a single
@@ -96,6 +110,43 @@ class FrequencyScanner(
          *  genuine signals; large alpha => reacts quickly to real band
          *  condition changes (e.g. moving the dongle to a different band). */
         private const val NOISE_FLOOR_ALPHA = 0.05
+
+        /** How often the hit frequency is re-sampled while [ScanConfig.holdOnSignal]
+         *  is holding the sweep on an active transmission, waiting for carrier loss. */
+        private const val HOLD_POLL_INTERVAL_MS = 150L
+
+        /** Consecutive below-threshold polls required before [holdUntilCarrierLoss]
+         *  actually releases the hold. A single noisy/faded sample dipping under
+         *  threshold is normal mid-transmission (syllabic fading, momentary
+         *  deviation dropout) and must not be mistaken for the carrier actually
+         *  going away -- releasing on one dip is what let the sweep restart and
+         *  re-detect the *same* transmitter's spectral skirt as fresh "new" hits
+         *  on neighbouring channels a moment later. Real scanners debounce carrier
+         *  loss for roughly this many hundred ms before dropping hold. */
+        private const val HOLD_RELEASE_DEBOUNCE_POLLS = 3
+
+        /** Number of wideband FFT frames averaged (in linear power domain)
+         *  together into one [FftBlock] before detection runs. A single raw
+         *  frame lets bin-to-bin noise wobble on a real carrier's skirt cross
+         *  threshold intermittently, which [detectSignals] then reports as
+         *  several separate "hits" spread across neighbouring bins/channels
+         *  instead of the one real transmission. Averaging several frames in
+         *  linear power (not dB) before thresholding smooths that wobble out
+         *  the same way real noise-floor averaging does, without blurring a
+         *  genuine signal's own centre frequency. */
+        private const val SCAN_BLOCK_AVERAGES = 3
+
+        /** Bins immediately around DC (the tuned centre frequency) excluded from
+         *  detection, noise-floor estimation, and narrowband power readings.
+         *  RTL-SDR (and most direct-conversion/zero-IF) dongles leave a DC
+         *  offset / LO-leakage spike sitting exactly at the centre bin of every
+         *  capture regardless of whether a real signal is present there -- this
+         *  is a hardware artefact, not RF. Without a guard, that spike is
+         *  itself detected as a phantom "signal" parked on whatever channel
+         *  happens to fall on the tuned centre frequency every single capture,
+         *  and it also drags a naive noise-floor estimate upward if it's not
+         *  excluded from that calculation too. */
+        private const val DC_GUARD_BINS = 6
 
         /** Bound on the per-frequency hit-counter map to avoid unbounded growth
          *  during very long scanning sessions. */
@@ -143,6 +194,17 @@ class FrequencyScanner(
         val adaptiveMarginDb: Float = DEFAULT_ADAPTIVE_MARGIN_DB,
         val dwellTimeMs: Long = 200L,
         val resumeTimeMs: Long = 3000L,
+        /** Standard scanner "priority/signal hold" behaviour (see e.g.
+         *  SDRangel's channel demodulators, which stay locked onto an active
+         *  signal rather than timing out on a fixed dwell): when true, a hit
+         *  keeps the capture parked on that frequency for as long as the
+         *  carrier stays above threshold, and the sweep only resumes once the
+         *  transmission actually ends. When false, falls back to the old
+         *  behaviour of always waiting a fixed [resumeTimeMs] regardless of
+         *  whether the signal is still present. Defaults to true — this is
+         *  the default/expected behaviour on virtually every consumer
+         *  scanner (Uniden, Whistler, etc.). */
+        val holdOnSignal: Boolean = true,
         val skipActiveMs: Long = 500L,
         val mode: DemodMode = DemodMode.NFM,
         val scanUp: Boolean = true,
@@ -396,25 +458,52 @@ class FrequencyScanner(
             ?: device.statusFlow.value.signalStrengthDb
 
     /**
-     * Retune to [centerFreqHz], let the PLL settle, then capture one fresh
-     * wideband IQ block and run it through the scanner's own FFT.
+     * Retune to [centerFreqHz], let the PLL settle, then capture
+     * [SCAN_BLOCK_AVERAGES] fresh wideband IQ frames and average their power
+     * spectra (in linear domain) into a single [FftBlock].
      *
      * The first buffer observed after a retune is discarded: it may have
      * been captured by the source mid-retune (partially at the old
      * frequency) or simply be sitting queued from before the retune took
      * effect, so it cannot be trusted to reflect [centerFreqHz]. Only the
-     * buffer after that is analyzed.
+     * buffers after that are analyzed.
+     *
+     * Averaging several frames matters just as much for *detection* as it
+     * does for the noise floor: a single raw frame lets ordinary bin-to-bin
+     * noise wobble on a real carrier's spectral skirt dip below and back
+     * above threshold from one bin to the next, which [detectSignals] would
+     * otherwise report as several separate broken-up "signals" scattered
+     * across neighbouring channels instead of the one real transmission
+     * (this is what produced spurious extra hits on channels adjacent to a
+     * genuine strong carrier). Averaging in linear power -- not dB -- before
+     * thresholding smooths that wobble the same way real noise averaging
+     * does, without blurring a genuine signal's own centre frequency, since
+     * every frame here is captured at the same, unchanging [centerFreqHz].
      */
     private suspend fun captureBlock(centerFreqHz: Long): FftBlock? {
         device.setCenterFrequency(centerFreqHz)
+        onRetune?.invoke(centerFreqHz)
         delay(RETUNE_SETTLE_MS)
         return try {
-            withTimeoutOrNull(IQ_CAPTURE_TIMEOUT_MS) {
+            withTimeoutOrNull(IQ_CAPTURE_TIMEOUT_MS * (SCAN_BLOCK_AVERAGES + 1)) {
                 device.iqFlow.first() // discard: may predate the retune settling
-                val raw = device.iqFlow.first()
-                val spectrum = fftEngine.processUint8(raw).copyOf()
-                val floor = estimateBlockNoiseFloor(spectrum)
-                FftBlock(centerFreqHz, device.getSampleRate(), spectrum, floor)
+                var accum: DoubleArray? = null
+                var framesAveraged = 0
+                var sampleRate = device.getSampleRate()
+                repeat(SCAN_BLOCK_AVERAGES) {
+                    val raw = device.iqFlow.first()
+                    val spectrum = fftEngine.processUint8(raw)
+                    if (accum == null) accum = DoubleArray(spectrum.size)
+                    val acc = accum!!
+                    for (i in spectrum.indices) acc[i] += 10.0.pow(spectrum[i] / 10.0)
+                    framesAveraged++
+                    sampleRate = device.getSampleRate()
+                }
+                val acc = accum ?: return@withTimeoutOrNull null
+                val n = acc.size
+                val averaged = FloatArray(n) { i -> (10.0 * log10(acc[i] / framesAveraged + 1e-30)).toFloat() }
+                val floor = estimateBlockNoiseFloor(averaged)
+                FftBlock(centerFreqHz, sampleRate, averaged, floor)
             }
         } catch (e: Exception) {
             Log.w(TAG, "capture failed @ $centerFreqHz Hz: ${e.message}")
@@ -445,10 +534,31 @@ class FrequencyScanner(
         val n = spectrumDb.size
         val edgeBins = (n * EDGE_FRACTION).toInt().coerceAtLeast(1)
         if (n <= edgeBins * 2) return spectrumDb.minOrNull() ?: -120f
-        val usable = spectrumDb.copyOfRange(edgeBins, n - edgeBins)
+        val center = n / 2
+        // Exclude both the capture's edges (spectral leakage / roll-off) and
+        // the DC guard band (hardware DC-offset/LO-leakage spike) from the
+        // floor estimate -- neither reflects real RF noise, and left in, the
+        // DC spike in particular biases the median upward every single
+        // capture regardless of actual band conditions, which is exactly the
+        // kind of "noise floor magnified" symptom Auto dB Range surfaced.
+        val usable = ArrayList<Float>(n)
+        for (i in edgeBins until n - edgeBins) {
+            if (isDcGuardBin(i, center)) continue
+            usable += spectrumDb[i]
+        }
+        if (usable.isEmpty()) return spectrumDb.minOrNull() ?: -120f
         usable.sort()
         return usable[usable.size / 2]
     }
+
+    /** True if bin [i] falls within [DC_GUARD_BINS] of the capture's centre
+     *  bin ([center]) -- i.e. inside the DC offset / LO-leakage guard band
+     *  described on [DC_GUARD_BINS]. Shared by every place that reads bins
+     *  near the tuned frequency (noise floor estimate, narrowband power,
+     *  and multi-signal detection) so none of them can mistake the hardware
+     *  DC spike for a real signal or fold it into a noise estimate. */
+    private fun isDcGuardBin(i: Int, center: Int): Boolean =
+        i in (center - DC_GUARD_BINS)..(center + DC_GUARD_BINS)
 
     /** Average power (dBFS) over a ~[NARROWBAND_HZ]-wide window of bins
      *  straddling the tuned (DC) centre bin of a capture — i.e. "how strong
@@ -465,10 +575,26 @@ class FrequencyScanner(
         var sumLin = 0.0
         var count = 0
         for (i in lo..hi) {
+            // Skip the DC guard band -- see DC_GUARD_BINS. A narrowband
+            // reading centred exactly on the tuned frequency is precisely
+            // where the hardware DC spike sits, so without this guard this
+            // reading (used by memory scan / priority poll / search / hold)
+            // reports the spike's power instead of the real channel's,
+            // producing a "hit" on whatever channel happens to be tuned
+            // regardless of whether anything is actually transmitting there.
+            if (isDcGuardBin(i, center)) continue
             sumLin += 10.0.pow(spectrumDb[i] / 10.0)
             count++
         }
-        return if (count > 0) (10.0 * log10(sumLin / count)).toFloat() else -200f
+        if (count == 0) {
+            // The whole narrowband window was inside the DC guard (very wide
+            // guard relative to channel spacing) -- fall back to the single
+            // nearest bin just outside the guard so we still return a real
+            // reading instead of silently reporting nothing.
+            val fallbackBin = (center + DC_GUARD_BINS + 1).coerceAtMost(n - 1)
+            return spectrumDb[fallbackBin]
+        }
+        return (10.0 * log10(sumLin / count)).toFloat()
     }
 
     /** Tune to a single frequency and take [samples] rapid narrowband
@@ -477,6 +603,7 @@ class FrequencyScanner(
      *  whole capture's worth of bandwidth — is what's being evaluated. */
     private suspend fun sampleSignal(freqHz: Long, totalDwellMs: Long, samples: Int): Float {
         device.setCenterFrequency(freqHz)
+        onRetune?.invoke(freqHz)
         delay(RETUNE_SETTLE_MS)
         val iterations = max(1, samples)
         val perIterationMs = max(20L, totalDwellMs / iterations)
@@ -495,6 +622,46 @@ class FrequencyScanner(
         // couldn't get a single real capture (source stalled/disconnected).
         if (peak <= -199f) peak = fallbackSignalLevel()
         return peak
+    }
+
+    /**
+     * Standard scanner "hold on signal" behaviour, learned from how
+     * SDRangel's channel demodulators work: once a channel is demodulating a
+     * real signal, it stays locked to that channel rather than being torn
+     * down on a fixed timer — the channel only releases when the signal
+     * itself goes away. Applied here to the scan sweep: park the capture on
+     * [freqHz] and keep re-sampling its level (respecting pause) until it
+     * drops back to/under [config]'s threshold, i.e. carrier loss, then
+     * return so the sweep can resume. Runs indefinitely while the carrier is
+     * present -- exactly the "stay until the transmission ends" behaviour a
+     * physical scanner's Hold/Priority mode gives you, as opposed to always
+     * hopping off after a fixed dwell regardless of whether the conversation
+     * is still going.
+     */
+    private suspend fun holdUntilCarrierLoss(freqHz: Long, config: ScanConfig) {
+        var belowThresholdStreak = 0
+        while (currentCoroutineContext().isActive) {
+            if (_status.value.state == ScanState.PAUSED) { delay(100); continue }
+            val db = sampleSignal(freqHz, HOLD_POLL_INTERVAL_MS, samples = 1)
+            val aboveThreshold = db > effectiveThreshold(config)
+            updateNoiseFloor(db, looksLikeHit = aboveThreshold)
+            _status.value = _status.value.copy(
+                activeFreqHz = freqHz, signalDb = db, noiseFloorDb = noiseFloorEstimate
+            )
+            if (aboveThreshold) {
+                belowThresholdStreak = 0
+            } else {
+                belowThresholdStreak++
+                // Require several consecutive below-threshold polls, not just
+                // one, before treating this as real carrier loss -- a single
+                // dip is normal mid-transmission (fading, momentary deviation
+                // dropout on FM) and releasing on it let the sweep restart
+                // and re-detect the *same* still-active transmitter's
+                // spectral skirt moments later as spurious "new" hits on
+                // neighbouring channels.
+                if (belowThresholdStreak >= HOLD_RELEASE_DEBOUNCE_POLLS) return
+            }
+        }
     }
 
     private var scanJob: Job? = null
@@ -601,14 +768,21 @@ class FrequencyScanner(
         val threshold = if (config.adaptiveSquelch) floor + marginDb else config.squelchDb
 
         val results = mutableListOf<DetectedSignal>()
+        val center = n / 2
         var i = edgeBins
         val hi = n - edgeBins
         while (i < hi) {
-            if (spectrum[i] <= threshold) { i++; continue }
+            // Never let the DC guard band start (or continue) a run -- see
+            // DC_GUARD_BINS. Without this, the hardware DC spike sitting
+            // exactly at the tuned centre frequency gets grouped as its own
+            // "signal" on whatever channel the scanner happens to be
+            // centred on for that capture, reported as a hit every time
+            // regardless of real RF activity.
+            if (isDcGuardBin(i, center) || spectrum[i] <= threshold) { i++; continue }
             var sumLin = 0.0
             var sumFreqWeighted = 0.0
             var peakDb = -200f
-            while (i < hi && spectrum[i] > threshold) {
+            while (i < hi && spectrum[i] > threshold && !isDcGuardBin(i, center)) {
                 val p = 10.0.pow(spectrum[i] / 10.0)
                 val freqOffsetHz = (i - n / 2) * hzPerBin
                 sumLin += p
@@ -712,10 +886,20 @@ class FrequencyScanner(
                     }
 
                     if (detections.isNotEmpty()) {
-                        // Give the user time to hear/see the hit(s) before the
-                        // sweep moves the capture window on, same intent as
-                        // the old per-channel resumeTimeMs pause.
-                        delay(config.resumeTimeMs)
+                        if (config.holdOnSignal) {
+                            // Standard scanner behaviour: stay parked on the
+                            // strongest detection in this capture until its
+                            // carrier actually drops, rather than always
+                            // waiting a fixed resumeTimeMs.
+                            holdUntilCarrierLoss(
+                                detections.maxByOrNull { it.signalDb }!!.freqHz, config
+                            )
+                        } else {
+                            // Give the user time to hear/see the hit(s) before the
+                            // sweep moves the capture window on, same intent as
+                            // the old per-channel resumeTimeMs pause.
+                            delay(config.resumeTimeMs)
+                        }
                     } else {
                         delay(max(0L, config.dwellTimeMs - RETUNE_SETTLE_MS))
                     }
@@ -876,7 +1060,11 @@ class FrequencyScanner(
                     _status.value = _status.value.copy(
                         activeFreqHz = freq, hitsFound = hitsFound, lastHitSource = HitSource.MEMORY
                     )
-                    delay(resumeTimeMs)
+                    if (pseudoConfig.holdOnSignal) {
+                        holdUntilCarrierLoss(freq, pseudoConfig)
+                    } else {
+                        delay(resumeTimeMs)
+                    }
                     temporaryLockout[freq] = System.currentTimeMillis() + pseudoConfig.skipActiveMs
                 }
 

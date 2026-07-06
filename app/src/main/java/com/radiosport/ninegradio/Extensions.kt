@@ -46,6 +46,17 @@ fun Long.toFreqString(): String = when {
     else                   -> "$this Hz"
 }
 
+/**
+ * Format this Hz value in MHz with full, exact precision — no rounding or
+ * truncation of significant digits (e.g. 446_006_250L -> "446.00625", never
+ * "446.0063"). Uses enough decimal places to represent single-Hz resolution
+ * exactly, then trims only insignificant trailing zeros.
+ */
+fun Long.toExactMhzString(): String {
+    val mhz = java.math.BigDecimal(this).divide(java.math.BigDecimal(1_000_000))
+    return mhz.stripTrailingZeros().toPlainString()
+}
+
 fun Long.toFreqStringShort(): String = when {
     this >= 1_000_000_000L -> "${"%.3f".format(this / 1e9)}G"
     this >= 1_000_000L     -> "${"%.3f".format(this / 1e6)}M"

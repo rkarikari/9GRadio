@@ -23,6 +23,32 @@
         android:letterSpacing="0.1"
         android:layout_marginBottom="8dp"/>
 
+    <!-- Scanner details toggle header. The detail fields below are collapsed
+         by default; tapping this row expands/collapses them. -->
+    <LinearLayout android:id="@+id/rowScanTabDetailsToggle"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical"
+        android:clickable="true" android:focusable="true"
+        android:background="?attr/selectableItemBackground"
+        android:paddingVertical="6dp">
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:text="Scanner Details"
+            android:textColor="#AAFFFFFF" android:textSize="12sp"
+            android:textAllCaps="true" android:letterSpacing="0.05"/>
+        <TextView android:id="@+id/tvScanTabDetailsChevron"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="&#9656;"
+            android:textColor="#AAFFFFFF" android:textSize="14sp"/>
+    </LinearLayout>
+
+    <!-- Collapsible container: everything the user needs to configure before
+         starting a scan. Collapsed (GONE) by default; expanded on demand via
+         rowScanTabDetailsToggle so the tab opens compact. -->
+    <LinearLayout android:id="@+id/llScanTabDetails"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone">
+
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
         android:orientation="horizontal">
         <com.google.android.material.textfield.TextInputLayout
@@ -100,6 +126,19 @@
             android:textColor="#AAFFFFFF" android:textSize="12sp"/>
         <Switch android:id="@+id/switchScanTabDirection"
             android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        <!-- Standard scanner "hold" behaviour: stay on a hit and keep playing
+             audio for as long as the carrier is present, only resuming the
+             sweep after the signal actually drops (matches how SDRangel's
+             channel demodulators stay locked to an active signal rather than
+             timing out on a fixed dwell), instead of always resuming after a
+             fixed resumeTimeMs regardless of whether the transmission is
+             still going. Default ON since this is standard scanner behaviour. -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Hold on Signal" android:layout_marginStart="12dp"
+            android:textColor="#AAFFFFFF" android:textSize="12sp"/>
+        <Switch android:id="@+id/switchScanTabHoldOnSignal"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:checked="true"/>
     </LinearLayout>
 
     <!-- Adaptive squelch switch -->
@@ -136,6 +175,8 @@
             android:text="Load" android:textSize="11sp"
             android:backgroundTint="#2C3440" android:textColor="#FFFFFF"/>
     </LinearLayout>
+
+    </LinearLayout><!-- /llScanTabDetails -->
 
     <!-- Control buttons -->
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
@@ -221,6 +262,26 @@
             android:textSize="11sp" android:fontFamily="monospace"/>
     </LinearLayout>
 
+    <!-- Tabulated channel view: one row per configured channel, refreshed
+         in place with its latest power/activity every time the scan
+         revisits it (as opposed to the hit log below, which only ever
+         appends). Modeled on SDRangel's Frequency Scanner channel table. -->
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="Channel Table (tap to tune, long-press to lock out):"
+        android:textColor="#88FFFFFF" android:textSize="11sp"
+        android:layout_marginTop="10dp" android:layout_marginBottom="4dp"/>
+
+    <include layout="@layout/item_scan_channel_header"/>
+
+    <ListView
+        android:id="@+id/listScanTabChannelTable"
+        android:layout_width="match_parent"
+        android:layout_height="220dp"
+        android:background="#0D1117"
+        android:divider="#22FFFFFF"
+        android:dividerHeight="0.5dp"
+        android:nestedScrollingEnabled="true"/>
+
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
         android:text="Active Frequencies (tap to tune, long-press to lock out):"
         android:textColor="#88FFFFFF" android:textSize="11sp"
@@ -229,24 +290,6 @@
     <!-- Hit log (fixed height inside the drawer's own scroll view) -->
     <ListView
         android:id="@+id/listScanTabHits"
-        android:layout_width="match_parent"
-        android:layout_height="220dp"
-        android:background="#0D1117"
-        android:divider="#22FFFFFF"
-        android:dividerHeight="0.5dp"
-        android:nestedScrollingEnabled="true"/>
-
-    <!-- Tabulated channel view: one row per configured channel, refreshed
-         in place with its latest power/activity every time the scan
-         revisits it (as opposed to the hit log above, which only ever
-         appends). Modeled on SDRangel's Frequency Scanner channel table. -->
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="Channel Table (live, tap to tune):"
-        android:textColor="#88FFFFFF" android:textSize="11sp"
-        android:layout_marginTop="10dp" android:layout_marginBottom="4dp"/>
-
-    <ListView
-        android:id="@+id/listScanTabChannelTable"
         android:layout_width="match_parent"
         android:layout_height="220dp"
         android:background="#0D1117"

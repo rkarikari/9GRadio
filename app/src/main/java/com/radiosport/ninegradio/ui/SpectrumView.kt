@@ -1,6 +1,7 @@
 package com.radiosport.ninegradio.ui
 
 import com.radiosport.ninegradio.debug.DebugBus
+import com.radiosport.ninegradio.dsp.DemodMode
 import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
@@ -174,6 +175,21 @@ class SpectrumView @JvmOverloads constructor(
     //   5. No discernible signal -> default to a fixed 20 dB span above the
     //      noise floor (noise floor barely visible at the bottom, nothing to
     //      anchor a "70 % height" target to).
+    //   6. Per-protocol fit -> the "full view of the signal" target (floor
+    //      margin / peak-height fraction / no-signal span) is derived from
+    //      the ACTIVE protocol's own spectrum-display characteristics
+    //      (DemodMode.defaultBwHz / defaultDecimation -- the same per-mode
+    //      values 9GRadio already uses to decide how narrow/sensitive a
+    //      mode's spectrum view should be), not one fixed rule for every
+    //      mode. A 500 Hz CW tone and a 200 kHz WFM channel do not want the
+    //      same headroom to show their "full signal" without clipping.
+    //   7. NEVER re-range on carrier loss -> once a target has been reached
+    //      for a real signal, the range holds it exactly, indefinitely, even
+    //      after that signal disappears. Auto dB Range only ever moves to
+    //      accommodate a newly *received* signal; it must never shrink back
+    //      down just because the carrier went away. Re-acquisition still
+    //      happens when a *different* signal actually appears that needs a
+    //      materially different range.
     private var autoRangeEnabled = false
     private var autoDbMin = -120f                  // current displayed floor
     private var autoDbMax = 0f                     // current displayed ceiling
@@ -187,30 +203,114 @@ class SpectrumView @JvmOverloads constructor(
 
     // Last target computed, used to detect "the picture changed enough to
     // justify re-acquiring" once we're in the held (non-acquiring) state.
+    // Only ever updated from a hasSignal=true reading -- see requirement 7.
     private var lastTargetFloor   = Float.NaN
     private var lastTargetCeiling = Float.NaN
     // If the noise floor or required ceiling drifts by more than this many dB
     // while holding, treat it as a new scene and re-run acquisition rather
     // than silently drifting forever (requirement 4: settle-then-stop, but
-    // still correct for genuine condition changes like retuning).
+    // still correct for genuine condition changes like retuning to a
+    // different real signal).
     private val AUTO_RANGE_REACQUIRE_DELTA_DB = 6f
 
-    // requirement 1: how far above the noise floor the visible axis starts —
-    // small enough that the floor is "barely visible", not hidden entirely.
-    private val AUTO_RANGE_FLOOR_MARGIN_DB = 2f
-    // requirement 2: strongest signal must reach >= 70 % of the visible
-    // height, i.e. at most 30 % of the span is headroom above the peak.
-    private val AUTO_RANGE_PEAK_HEIGHT_FRACTION = 0.70f
-    // requirement 5: with no distinguishable signal, show a fixed 20 dB
-    // window above the noise floor.
-    private val AUTO_RANGE_NO_SIGNAL_SPAN_DB = 20f
     // A "signal" must clear the noise floor by at least this many dB
     // (99th-percentile bin vs. 15th-percentile noise-floor estimate) to be
-    // considered real and not just noise scatter — otherwise requirement 5
-    // applies instead of requirement 2.
-    private val AUTO_RANGE_SIGNAL_ABOVE_NOISE_DB = 6f
-    // Absolute floor for the visible span so the scale never collapses.
-    private val AUTO_RANGE_MIN_SPAN = 15f
+    // considered real and not just noise scatter. When this is false, Auto
+    // dB Range does not touch the current range at all (requirement 7) --
+    // it does NOT fall back to a "no signal" span, since that fallback was
+    // exactly the mechanism that made the display shrink back down on
+    // carrier loss. The very first time autoRange is enabled with no signal
+    // yet present, the seeded manual range from setAutoRange() is used as-is
+    // until a real signal arrives to size against.
+    //
+    // Deliberately higher than a bare "distinguishable from floor" threshold:
+    // during an active scan the live spectrum feed re-evaluates this every
+    // single hop, most of which are empty or near-empty channels -- a low
+    // bar here let ordinary noise bumps get misclassified as "a signal",
+    // each one re-triggering acquisition against a fresh, noise-driven
+    // target. Common-sense margin against that: require real separation.
+    private val AUTO_RANGE_SIGNAL_ABOVE_NOISE_DB = 9f
+    // Absolute floor for the visible span so the scale never collapses tight
+    // enough to visually magnify ordinary noise texture. Deliberately more
+    // generous than the old 15 dB value -- a marginal signal (or a scanner
+    // hop briefly landing on a near-empty channel) that only just clears
+    // AUTO_RANGE_SIGNAL_ABOVE_NOISE_DB must still get a comfortably wide
+    // span, not a tight one that makes noise scatter look like real activity.
+    private val AUTO_RANGE_MIN_SPAN = 25f
+
+    // ── requirement 6: per-protocol Auto dB Range fit ──────────────────────
+    //
+    // Three tiers, matching the same narrowband/medium/wideband grouping
+    // DemodMode.defaultDecimation already uses to decide spectral
+    // resolution per protocol:
+    //
+    //   NARROW  (heaviest decimation, tightest channels: CW/CWR, USB/LSB,
+    //            NFM, APRS, DPMR, NXDN, digital voice, FLEX)
+    //     -> smallest floor margin (noise floor sits closest to the axis --
+    //        these are typically weak, narrow signals where every dB of
+    //        headroom below the true floor wastes vertical resolution) and
+    //        the highest peak-height fraction (the signal itself is narrow
+    //        in frequency but should fill the display's height).
+    //   MEDIUM  (AM, DSB, ACARS, DRM)
+    //     -> the previous single-rule defaults, unchanged.
+    //   WIDE    (FM, WFM, WFM Stereo, RAW IQ, ADS-B -- full-bandwidth /
+    //            undecimated modes)
+    //     -> larger floor margin and lower peak-height fraction, giving more
+    //        headroom so a spectrally wide signal's shoulders/sidebands
+    //        aren't clipped by a display sized for a narrow tone.
+    //
+    // Note: there is deliberately no "no-signal span" parameter here (the
+    // pre-existing single rule set had one) -- see requirement 7 above.
+    // Since Auto dB Range now never adjusts when no signal is present, a
+    // per-tier no-signal span would never be read.
+    private enum class AutoRangeTier(
+        val floorMarginDb: Float,
+        val peakHeightFraction: Float
+    ) {
+        NARROW(floorMarginDb = 1f,  peakHeightFraction = 0.80f),
+        MEDIUM(floorMarginDb = 2f,  peakHeightFraction = 0.70f),
+        WIDE  (floorMarginDb = 4f,  peakHeightFraction = 0.60f)
+    }
+
+    private fun tierFor(mode: DemodMode?): AutoRangeTier = when (mode) {
+        DemodMode.CW, DemodMode.CWR,
+        DemodMode.USB, DemodMode.LSB,
+        DemodMode.NFM, DemodMode.APRS,
+        DemodMode.DPMR, DemodMode.NXDN,
+        DemodMode.DMR, DemodMode.P25, DemodMode.DSTAR,
+        DemodMode.YSF, DemodMode.M17, DemodMode.DIG,
+        DemodMode.FLEX
+            -> AutoRangeTier.NARROW
+        DemodMode.FM, DemodMode.WFM, DemodMode.WFM_STEREO,
+        DemodMode.RAW, DemodMode.ADSB
+            -> AutoRangeTier.WIDE
+        else /* AM, DSB, ACARS, DRM, or unset */
+            -> AutoRangeTier.MEDIUM
+    }
+
+    // The demod protocol currently active, driving tierFor() above. Set via
+    // setDemodMode() by the caller whenever the user changes mode; null
+    // (MEDIUM tier / previous fixed defaults) until first set.
+    private var currentDemodMode: DemodMode? = null
+
+    /**
+     * Tell the spectrum view which protocol is active so Auto dB Range can
+     * apply that protocol's own fit (see [AutoRangeTier] / [tierFor]) instead
+     * of one fixed rule for every mode. Changing mode is treated as a new
+     * scene: a fresh acquisition window is armed so the range actually
+     * re-fits to the new protocol's target rather than holding the previous
+     * mode's frozen range indefinitely.
+     */
+    fun setDemodMode(mode: DemodMode) {
+        if (mode == currentDemodMode) return
+        currentDemodMode = mode
+        if (autoRangeEnabled) {
+            autoRangeAcquiring = true
+            autoRangeAcquireStartMs = System.currentTimeMillis()
+            lastTargetFloor = Float.NaN
+            lastTargetCeiling = Float.NaN
+        }
+    }
 
     /** Fired after each auto-range update; caller mirrors the range to WaterfallView. */
     var onAutoRangeChanged: ((floor: Float, ceiling: Float) -> Unit)? = null
@@ -461,12 +561,18 @@ class SpectrumView @JvmOverloads constructor(
 
         // ── Auto dB range — "true intelligence" noise-floor-aware algorithm ──
         // See field-block comment above for the full spec. Summary:
-        //   floor    = noise floor + small margin           (barely visible, near-black on waterfall)
-        //   ceiling  = peak such that peak sits at >= 70% of span, UNLESS no
-        //              real signal is present, in which case span defaults
-        //              to a fixed 20 dB above the noise floor.
+        //   floor    = noise floor + tier's floor margin      (barely visible, near-black on waterfall)
+        //   ceiling  = peak such that peak sits at >= tier's peak-height
+        //              fraction of span
+        //   tier     = derived from the active protocol (see AutoRangeTier / tierFor)
         //   timing   = snaps to target within 5 s of enabling, then holds
-        //              steady (re-acquires only if the scene changes a lot).
+        //              steady (re-acquires only if a genuine signal's
+        //              picture changes significantly).
+        //   CARRIER LOSS: if no signal is currently distinguishable from the
+        //   noise floor, the range is NOT touched at all -- it holds exactly
+        //   whatever it last showed for the most recent real signal,
+        //   indefinitely. Auto dB Range only ever adjusts to accommodate a
+        //   newly received signal, never to a signal's disappearance.
         if (autoRangeEnabled && data.isNotEmpty()) {
             val sorted = data.copyOf().also { it.sort() }
             val n = sorted.size
@@ -480,90 +586,104 @@ class SpectrumView @JvmOverloads constructor(
             // line itself is drawn from -- guarantees floor and indicator agree.
             val noiseDb = estimatedNoiseFloor
 
-            // requirement 1 + 3: floor sits just under the noise so the noise
-            // is barely visible above the axis / near-black on the waterfall.
-            val targetFloor = noiseDb - AUTO_RANGE_FLOOR_MARGIN_DB
-
             // Is there a real signal distinguishable from the noise floor?
             val hasSignal = (peakDb - noiseDb) >= AUTO_RANGE_SIGNAL_ABOVE_NOISE_DB
 
-            val targetCeiling = if (hasSignal) {
-                // requirement 2: solve for ceiling such that the peak sits at
-                // exactly AUTO_RANGE_PEAK_HEIGHT_FRACTION (70%) of the span:
-                //   (peakDb - targetFloor) / (ceiling - targetFloor) = 0.70
-                //   ceiling = targetFloor + (peakDb - targetFloor) / 0.70
-                val raw = targetFloor + (peakDb - targetFloor) / AUTO_RANGE_PEAK_HEIGHT_FRACTION
-                max(raw, targetFloor + AUTO_RANGE_MIN_SPAN)
-            } else {
-                // requirement 5: no discernible signal -> fixed 20 dB window
-                // above the noise floor.
-                targetFloor + AUTO_RANGE_NO_SIGNAL_SPAN_DB
-            }
+            if (hasSignal) {
+                val tier = tierFor(currentDemodMode)
 
-            // ── Acquisition / hold state machine (requirement 4) ────────────
-            val nowMs = System.currentTimeMillis()
-            val floorMoved = lastTargetFloor.isNaN() ||
-                abs(targetFloor - lastTargetFloor) > AUTO_RANGE_REACQUIRE_DELTA_DB
-            val ceilingMoved = lastTargetCeiling.isNaN() ||
-                abs(targetCeiling - lastTargetCeiling) > AUTO_RANGE_REACQUIRE_DELTA_DB
+                // requirement 1 + 3: floor sits just under the noise so the
+                // noise is barely visible above the axis / near-black on the
+                // waterfall, per this protocol's own margin.
+                val targetFloor = noiseDb - tier.floorMarginDb
 
-            if (!autoRangeAcquiring && (floorMoved || ceilingMoved)) {
-                // Scene changed materially while holding steady -- re-arm a
-                // fresh, bounded acquisition window rather than drifting
-                // forever.
-                autoRangeAcquiring = true
-                autoRangeAcquireStartMs = nowMs
-            }
+                // requirement 2 + 6: solve for ceiling such that the peak
+                // sits at exactly the protocol's target peak-height fraction
+                // of the span:
+                //   (peakDb - targetFloor) / (ceiling - targetFloor) = fraction
+                //   ceiling = targetFloor + (peakDb - targetFloor) / fraction
+                val raw = targetFloor + (peakDb - targetFloor) / tier.peakHeightFraction
 
-            lastTargetFloor = targetFloor
-            lastTargetCeiling = targetCeiling
+                // Hard floor on the span, common-sense guard against
+                // magnifying noise: a peak that only barely cleared
+                // AUTO_RANGE_SIGNAL_ABOVE_NOISE_DB (e.g. a weak/marginal hit,
+                // or a scanner hop landing on a nearly-empty channel) would
+                // otherwise solve for a very TIGHT ceiling close to the
+                // floor -- and a tight span makes ordinary noise texture
+                // look like dramatic activity even though nothing genuinely
+                // strong is present. AUTO_RANGE_MIN_SPAN is anchored to
+                // targetFloor (itself pinned just above the actual measured
+                // noise floor), not to whatever autoDbMin currently happens
+                // to be, so this guard holds regardless of history.
+                val targetCeiling = max(raw, targetFloor + AUTO_RANGE_MIN_SPAN)
 
-            if (autoRangeAcquiring) {
-                val elapsedMs = nowMs - autoRangeAcquireStartMs
-                if (elapsedMs >= AUTO_RANGE_SETTLE_MS) {
-                    // Settle window elapsed: snap exactly to target and stop
-                    // adjusting (requirement 4 -- "no more than 5 s to set,
-                    // not continually adjusting forever").
-                    autoDbMin = targetFloor
-                    autoDbMax = targetCeiling
-                    autoRangeAcquiring = false
-                } else {
-                    // Linear "time-remaining" convergence: move a fixed
-                    // fraction of the *remaining* distance in the *remaining*
-                    // time, recomputed every frame. This guarantees the range
-                    // reaches the target by AUTO_RANGE_SETTLE_MS regardless of
-                    // the actual frame rate, while still being a smooth
-                    // (non-jumpy) approach rather than a single hard step.
-                    // fractionOfWindowElapsed goes 0 -> 1 over the 5 s budget;
-                    // stepFraction is the portion of the remaining gap to
-                    // close on this frame, tuned so ~15 fps updates produce a
-                    // visually smooth glide that still lands on target by the
-                    // deadline.
-                    val remainingMs = (AUTO_RANGE_SETTLE_MS - elapsedMs).coerceAtLeast(1L)
-                    // At ~15 fps, ~1 frame every 67 ms. stepFraction is set so
-                    // that closing this fraction of the gap every 67 ms fully
-                    // consumes the remaining window -- i.e. stepFraction =
-                    // frameIntervalMs / remainingMs, clamped so a single frame
-                    // never overshoots (fraction <= 1) and progress never
-                    // stalls to zero (fraction >= a small floor).
-                    val frameIntervalMs = 67f
-                    val stepFraction = (frameIntervalMs / remainingMs.toFloat()).coerceIn(0.05f, 1f)
-                    autoDbMin += stepFraction * (targetFloor - autoDbMin)
-                    autoDbMax += stepFraction * (targetCeiling - autoDbMax)
+                // ── Acquisition / hold state machine (requirement 4) ────────
+                val nowMs = System.currentTimeMillis()
+                val floorMoved = lastTargetFloor.isNaN() ||
+                    abs(targetFloor - lastTargetFloor) > AUTO_RANGE_REACQUIRE_DELTA_DB
+                val ceilingMoved = lastTargetCeiling.isNaN() ||
+                    abs(targetCeiling - lastTargetCeiling) > AUTO_RANGE_REACQUIRE_DELTA_DB
+
+                if (!autoRangeAcquiring && (floorMoved || ceilingMoved)) {
+                    // Scene changed materially while holding steady (e.g. a
+                    // different, stronger/weaker real signal appeared) --
+                    // re-arm a fresh, bounded acquisition window rather than
+                    // drifting forever.
+                    autoRangeAcquiring = true
+                    autoRangeAcquireStartMs = nowMs
                 }
-            }
-            // else: holding steady -- range is intentionally NOT touched here,
-            // satisfying "not continually adjusting forever".
 
-            // Guard: enforce minimum span so the scale never collapses.
-            if (autoDbMax - autoDbMin < AUTO_RANGE_MIN_SPAN) {
-                autoDbMax = autoDbMin + AUTO_RANGE_MIN_SPAN
-            }
+                lastTargetFloor = targetFloor
+                lastTargetCeiling = targetCeiling
 
-            dbMin = autoDbMin
-            dbMax = autoDbMax
-            rebuildGradient()
-            onAutoRangeChanged?.invoke(dbMin, dbMax)
+                if (autoRangeAcquiring) {
+                    val elapsedMs = nowMs - autoRangeAcquireStartMs
+                    if (elapsedMs >= AUTO_RANGE_SETTLE_MS) {
+                        // Settle window elapsed: snap exactly to target and stop
+                        // adjusting (requirement 4 -- "no more than 5 s to set,
+                        // not continually adjusting forever").
+                        autoDbMin = targetFloor
+                        autoDbMax = targetCeiling
+                        autoRangeAcquiring = false
+                    } else {
+                        // Linear "time-remaining" convergence: move a fixed
+                        // fraction of the *remaining* distance in the
+                        // *remaining* time, recomputed every frame. This
+                        // guarantees the range reaches the target by
+                        // AUTO_RANGE_SETTLE_MS regardless of the actual frame
+                        // rate, while still being a smooth (non-jumpy)
+                        // approach rather than a single hard step.
+                        val remainingMs = (AUTO_RANGE_SETTLE_MS - elapsedMs).coerceAtLeast(1L)
+                        val frameIntervalMs = 67f
+                        val stepFraction = (frameIntervalMs / remainingMs.toFloat()).coerceIn(0.05f, 1f)
+                        autoDbMin += stepFraction * (targetFloor - autoDbMin)
+                        autoDbMax += stepFraction * (targetCeiling - autoDbMax)
+                    }
+                }
+                // else: holding steady -- range is intentionally NOT touched
+                // here, satisfying "not continually adjusting forever".
+
+                // Guard: enforce minimum span so the scale never collapses.
+                if (autoDbMax - autoDbMin < AUTO_RANGE_MIN_SPAN) {
+                    autoDbMax = autoDbMin + AUTO_RANGE_MIN_SPAN
+                }
+
+                dbMin = autoDbMin
+                dbMax = autoDbMax
+                rebuildGradient()
+                onAutoRangeChanged?.invoke(dbMin, dbMax)
+            }
+            // else: no distinguishable signal this frame -- carrier loss (or
+            // no carrier yet). Auto dB Range must NEVER adjust to this: hold
+            // the last range exactly as it was for the most recent real
+            // signal. Do not touch autoDbMin/autoDbMax, lastTargetFloor/
+            // Ceiling, dbMin/dbMax, or the acquisition state at all. If
+            // acquisition was already in progress toward a real signal that
+            // has since vanished mid-acquisition, let it keep completing
+            // toward that already-computed target rather than aborting --
+            // simplest and safest is to just do nothing here, since
+            // lastTargetFloor/Ceiling and the acquiring flag are only ever
+            // set from a hasSignal=true branch.
         }
 
 

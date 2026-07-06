@@ -83,6 +83,12 @@ class FftEngine(fftSize: Int = 2048) {
     private var frameAvgBuffer = DoubleArray(fftSize) { 0.0 }
     private var frameAvgAccum  = 0
 
+    // Set by resetSpectrumAveraging() to force the *next* frame to snap the
+    // exponential-smoothing trace straight to that frame instead of blending
+    // it with whatever the smoothing buffer was still tracking beforehand.
+    // See resetSpectrumAveraging() doc for why this matters.
+    @Volatile private var resyncPending = false
+
     @Volatile var frameAveragingCount: Int = 1
         set(value) {
             field = value.coerceIn(1, 64)
@@ -94,6 +100,35 @@ class FftEngine(fftSize: Int = 2048) {
             frameAvgBuffer.fill(0.0)
             frameAvgAccum = 0
         }
+    }
+
+    /**
+     * Force the spectrum pipeline to resynchronize on the very next frame:
+     * discards any partially-accumulated frame average and snaps the
+     * exponential-smoothing trace straight to that next frame instead of
+     * blending it with whatever the *previous* tuned frequency had built up.
+     *
+     * Frame averaging and exponential smoothing both assume every frame fed
+     * in belongs to the same, continuously-tuned frequency -- that's what
+     * makes averaging N frames together cancel out random noise rather than
+     * signal. A frequency scanner breaks that assumption: it retunes the
+     * hardware every hop, often faster than the averaging/smoothing time
+     * constants, so without this reset, frames captured at *different* RF
+     * frequencies get incoherently blended bin-for-bin. That doesn't behave
+     * like real noise averaging (which converges toward the true floor) --
+     * it fabricates spurious energy in every bin from unrelated signals
+     * landing on top of each other, visibly raising and blurring the
+     * apparent noise floor. That inflated, smeared floor is exactly what
+     * Auto dB Range then reads as "the noise floor", so it computes a
+     * washed-out range that magnifies noise instead of a clean signal-aware
+     * one. Call this immediately after every hardware retune while
+     * something (like the scanner) is hopping frequency faster than the
+     * display's own averaging.
+     */
+    @Synchronized
+    fun resetSpectrumAveraging() {
+        resetFrameAvg()
+        resyncPending = true
     }
 
     // ── Per-bin noise floor estimation ────────────────────────────────────────
@@ -284,10 +319,19 @@ class FftEngine(fftSize: Int = 2048) {
         // ── Exponential smoothing ─────────────────────────────────────────────
         val alpha = smoothingAlpha
         var maxVal = Float.NEGATIVE_INFINITY
-        for (i in 0 until n) {
-            val s = alpha * smoothed[i] + (1f - alpha) * result[i]
-            smoothed[i] = s
-            if (s > maxVal) maxVal = s
+        if (resyncPending) {
+            // A retune just happened (see resetSpectrumAveraging()) -- snap
+            // straight to this fresh frame rather than blending it with the
+            // previous (now stale, different-frequency) smoothing trace.
+            System.arraycopy(result, 0, smoothed, 0, n)
+            resyncPending = false
+            for (i in 0 until n) { if (smoothed[i] > maxVal) maxVal = smoothed[i] }
+        } else {
+            for (i in 0 until n) {
+                val s = alpha * smoothed[i] + (1f - alpha) * result[i]
+                smoothed[i] = s
+                if (s > maxVal) maxVal = s
+            }
         }
         lastPeakDb = maxVal
 
