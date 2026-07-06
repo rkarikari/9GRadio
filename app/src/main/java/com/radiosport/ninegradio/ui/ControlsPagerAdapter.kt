@@ -25,6 +25,9 @@ import com.radiosport.ninegradio.R
  *   9 – YSF         (fragment_tab_ysf.xml)       — hidden unless DemodMode.YSF active
  *  10 – D-STAR      (fragment_tab_dstar.xml)     — hidden unless DemodMode.DSTAR active
  *  11 – Dig         (fragment_tab_dig.xml)        — hidden unless DemodMode.DIG active
+ *  12 – Scan        (fragment_tab_scan.xml)       — hidden unless explicitly invoked
+ *                                                    (Scanner button / FAB); not tied
+ *                                                    to a DemodMode like the tabs above
  */
 class ControlsPagerAdapter : RecyclerView.Adapter<ControlsPagerAdapter.TabHolder>() {
 
@@ -41,11 +44,12 @@ class ControlsPagerAdapter : RecyclerView.Adapter<ControlsPagerAdapter.TabHolder
         const val TAB_YSF       = 9
         const val TAB_DSTAR     = 10
         const val TAB_DIG       = 11
-        const val TAB_COUNT     = 12
+        const val TAB_SCAN      = 12
+        const val TAB_COUNT     = 13
 
         val TAB_TITLES = arrayOf(
             "Mode", "Tune", "RF", "Display", "Rec", "Settings",
-            "APRS", "ACARS", "DMR", "YSF", "D-STAR", "Dig"
+            "APRS", "ACARS", "DMR", "YSF", "D-STAR", "Dig", "Scan"
         )
 
         private val LAYOUTS = intArrayOf(
@@ -60,7 +64,8 @@ class ControlsPagerAdapter : RecyclerView.Adapter<ControlsPagerAdapter.TabHolder
             R.layout.fragment_tab_dmr,
             R.layout.fragment_tab_ysf,
             R.layout.fragment_tab_dstar,
-            R.layout.fragment_tab_dig
+            R.layout.fragment_tab_dig,
+            R.layout.fragment_tab_scan
         )
     }
 

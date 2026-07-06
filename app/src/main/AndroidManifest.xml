@@ -57,7 +57,6 @@
             android:parentActivityName=".ui.MainActivity" android:label="@string/settings" />
         <activity android:name=".ui.SpectrumActivity" android:exported="false"
             android:configChanges="orientation|screenSize" android:label="@string/spectrum" />
-        <activity android:name=".ui.ScannerActivity"  android:exported="false" android:label="@string/scanner" />
         <activity android:name=".ui.MemoryActivity"   android:exported="false" android:label="@string/memory_channels" />
         <activity android:name=".ui.RecordingActivity" android:exported="false" android:label="@string/recordings" />
         <activity android:name=".ui.BookmarkActivity"  android:exported="false" android:label="Bookmarks" />

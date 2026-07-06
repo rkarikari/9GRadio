@@ -95,6 +95,41 @@
                     android:layout_width="wrap_content" android:layout_height="wrap_content"/>
             </LinearLayout>
 
+            <!-- Adaptive squelch switch -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:layout_marginTop="4dp">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Adaptive Squelch (auto noise-floor tracking)"
+                    android:textColor="#AAFFFFFF" android:textSize="13sp"/>
+                <Switch android:id="@+id/switchScanAdaptive"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:checked="false"/>
+            </LinearLayout>
+
+            <!-- Scan parameter memory slots -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:layout_marginTop="12dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Memory" android:textColor="#00CCFF" android:textSize="13sp"
+                    android:layout_marginEnd="8dp"/>
+                <Spinner android:id="@+id/spinnerScanMemorySlot"
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:backgroundTint="#00CCFF"
+                    android:layout_marginEnd="8dp"/>
+                <Button android:id="@+id/btnScanMemSave"
+                    android:layout_width="wrap_content" android:layout_height="40dp"
+                    android:text="Save" android:textSize="12sp"
+                    android:backgroundTint="#2C3440" android:textColor="#FFFFFF"
+                    android:layout_marginEnd="8dp"/>
+                <Button android:id="@+id/btnScanMemLoad"
+                    android:layout_width="wrap_content" android:layout_height="40dp"
+                    android:text="Load" android:textSize="12sp"
+                    android:backgroundTint="#2C3440" android:textColor="#FFFFFF"/>
+            </LinearLayout>
+
             <!-- Control buttons -->
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="horizontal" android:layout_marginTop="16dp">
@@ -103,11 +138,31 @@
                     android:layout_weight="1" android:text="Start Scan"
                     android:backgroundTint="#00CC44" android:textColor="#000000"
                     android:layout_marginEnd="8dp"/>
+                <Button android:id="@+id/btnScanReset"
+                    android:layout_width="0dp" android:layout_height="48dp"
+                    android:layout_weight="1" android:text="Reset"
+                    android:backgroundTint="#2C3440" android:textColor="#FFFFFF"
+                    android:layout_marginEnd="8dp"/>
                 <Button android:id="@+id/btnScanPause"
                     android:layout_width="0dp" android:layout_height="48dp"
                     android:layout_weight="1" android:text="Pause"
                     android:backgroundTint="#FFAA00" android:textColor="#000000"
                     android:visibility="gone"/>
+            </LinearLayout>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:layout_marginTop="8dp">
+                <Button android:id="@+id/btnScanSearch"
+                    android:layout_width="0dp" android:layout_height="44dp"
+                    android:layout_weight="1" android:text="Search Mode"
+                    android:textSize="12sp"
+                    android:backgroundTint="#7A5CFF" android:textColor="#FFFFFF"
+                    android:layout_marginEnd="8dp"/>
+                <Button android:id="@+id/btnScanBusiest"
+                    android:layout_width="0dp" android:layout_height="44dp"
+                    android:layout_weight="1" android:text="Busiest"
+                    android:textSize="12sp"
+                    android:backgroundTint="#2C3440" android:textColor="#FFFFFF"/>
             </LinearLayout>
 
             <!-- Progress -->
@@ -137,8 +192,21 @@
                     android:textSize="14sp" android:fontFamily="monospace"/>
             </LinearLayout>
 
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:layout_marginTop="4dp">
+                <TextView android:id="@+id/tvScanNoiseFloor"
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:text="Floor: --- dB"
+                    android:textColor="#77AACCFF" android:textSize="12sp"
+                    android:fontFamily="monospace"/>
+                <TextView android:id="@+id/tvScanRate"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="--- ch/s" android:textColor="#77AACCFF"
+                    android:textSize="12sp" android:fontFamily="monospace"/>
+            </LinearLayout>
+
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="Active Frequencies (tap to tune):"
+                android:text="Active Frequencies (tap to tune, long-press to lock out):"
                 android:textColor="#88FFFFFF" android:textSize="12sp"
                 android:layout_marginTop="12dp" android:layout_marginBottom="4dp"/>
         </LinearLayout>

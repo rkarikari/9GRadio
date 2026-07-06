@@ -87,6 +87,12 @@ class DspEngine(private val device: IqSource) {
 
         /** Maximum FFT / spectrum update rate (fps). Keeps CPU load bounded on fast sample rates. */
         private const val SPECTRUM_MAX_FPS = 30
+        /** Assumed narrowband channel width (Hz) used to average FFT bins
+         *  around the tuned (DC) centre frequency for [DspStats.narrowbandCenterDb].
+         *  Matches the common 12.5 kHz NFM channel spacing used elsewhere
+         *  (e.g. FrequencyScanner's default stepHz); a reasonable default for
+         *  gating channel-specific signal level regardless of exact mode. */
+        private const val NARROWBAND_CHANNEL_HZ = 12_500.0
 
         /** Minimum IF bandwidth the user can select (Hz). */
         const val MIN_IF_BANDWIDTH_HZ = 100
@@ -659,6 +665,12 @@ class DspEngine(private val device: IqSource) {
         val demodMode: String = "NFM",
         val squelchOpen: Boolean = false,
         val signalDb: Float = -120f,
+        /** Average power in a narrow window of FFT bins centred on the tuned
+         *  frequency (DC bin) — unlike [signalDb] (the wideband spectrum
+         *  peak, used for the live spectrum-display squelch), this reflects
+         *  only the channel currently tuned to and is what a channelized
+         *  scanner should gate on. See [FrequencyScanner] squelch fix notes. */
+        val narrowbandCenterDb: Float = -120f,
         val audioVolume: Float = 1f,
         val isRecordingIq: Boolean = false,
         val isRecordingAudio: Boolean = false,
@@ -1547,6 +1559,45 @@ class DspEngine(private val device: IqSource) {
         // Used as signalDb for the squelch gate so the threshold the user drags on
         // the spectrum display is in the same dBFS reference as the squelch decision.
         val squelchSignalDb = fftEngine.lastPeakDb
+
+        // ── Narrowband (channel-specific) signal level ──────────────────────
+        // fftEngine.lastPeakDb / squelchSignalDb above is the PEAK across the
+        // *entire* captured spectrum (e.g. a 2 MHz window) — correct for the
+        // live spectrum-display squelch (the user drags the SQL line against
+        // what they see across the whole waterfall). It is NOT correct for a
+        // channelized scanner: when FrequencyScanner retunes the device to a
+        // candidate channel, the tuned frequency sits at the FFT's centre
+        // (DC) bin, but any stronger signal *elsewhere* in the same capture
+        // window (an adjacent channel, a broadcast station, a birdie) would
+        // dominate squelchSignalDb regardless of whether the actual tuned
+        // channel has any traffic on it — so the scanner's squelch threshold
+        // had essentially no channel-specific effect (its "signal" reading
+        // barely varied between a dead channel and a busy one, since it
+        // wasn't measuring the tuned channel at all).
+        //
+        // Fix: average power over a small window of bins straddling the
+        // centre (DC) bin — sized to roughly one channel's worth of
+        // bandwidth (12.5 kHz) — and expose it separately as
+        // narrowbandCenterDb for channel-specific consumers like the scanner.
+        val fftBinCount = fftSnapshot.size
+        val hzPerBin = if (fftBinCount > 0)
+            device.getSampleRate().toDouble() / fftEngine.decimationFactor / fftBinCount
+        else 1.0
+        val channelHalfBins = if (hzPerBin > 0)
+            (NARROWBAND_CHANNEL_HZ / hzPerBin / 2.0).toInt().coerceAtLeast(1)
+        else 1
+        val centerIdx = fftBinCount / 2
+        val loBin = (centerIdx - channelHalfBins).coerceAtLeast(0)
+        val hiBin = (centerIdx + channelHalfBins).coerceAtMost((fftBinCount - 1).coerceAtLeast(0))
+        var centerPowerSum = 0.0
+        var centerBinTally = 0
+        for (i in loBin..hiBin) {
+            centerPowerSum += Math.pow(10.0, fftSnapshot[i] / 10.0)
+            centerBinTally++
+        }
+        val narrowbandCenterDb = if (centerBinTally > 0)
+            (10.0 * Math.log10(centerPowerSum / centerBinTally)).toFloat()
+        else squelchSignalDb
         val nowMs = System.currentTimeMillis()
         if (nowMs - lastSpectrumMs >= SPECTRUM_MIN_INTERVAL_MS) {
             lastSpectrumMs = nowMs
@@ -2041,6 +2092,7 @@ class DspEngine(private val device: IqSource) {
             demodMode = demodMode.displayName,
             squelchOpen = squelchOpen,
             signalDb = signalDb,
+            narrowbandCenterDb = narrowbandCenterDb,
             isRecordingIq = iqRecorder.isRecording,
             isRecordingAudio = audioEngine.isRecording,
             bufferDrops = DebugBus.getIqPerf().flowDropCount.toInt()

@@ -28,6 +28,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.radiosport.ninegradio.R
 import com.radiosport.ninegradio.data.FrequencyDatabase
 import com.radiosport.ninegradio.data.RecordingMeta
+import org.json.JSONObject
 import com.radiosport.ninegradio.databinding.ActivityMainBinding
 import com.radiosport.ninegradio.dsp.DemodMode
 import com.radiosport.ninegradio.dsp.DspEngine
@@ -142,6 +143,24 @@ class MainActivity : AppCompatActivity() {
     private var dstarListAdapter: ArrayAdapter<String>? = null
     private var dstarCollectJob: Job? = null
     private var dstarFrameCount = 0
+
+    // ─── Scan drawer tab state ────────────────────────────────────────────────
+    // Unlike the protocol tabs above, this tab isn't tied to a DemodMode -- it
+    // is shown/hidden on demand via showScanTab()/hideScanTab(), invoked from
+    // the Settings tab's Scanner button and the main FAB.
+    private var scanTabScanner: com.radiosport.ninegradio.scanner.FrequencyScanner? = null
+    private val scanTabHitLog = mutableListOf<String>()
+    private val scanTabHitFreqs = mutableListOf<Long>()
+    private var scanTabHitAdapter: ArrayAdapter<String>? = null
+    private val scanTabChannelRows = mutableListOf<String>()
+    private val scanTabChannelFreqs = mutableListOf<Long>()
+    private var scanTabChannelAdapter: ArrayAdapter<String>? = null
+    private var scanTabChannelTableJob: Job? = null
+    private var scanTabStatusJob: Job? = null
+    private var scanTabHitsJob: Job? = null
+    private var scanTabScanning = false
+    private var scanTabPaused = false
+    private var scanTabSearching = false
 
     // ─── Rec tab recordings list state ───────────────────────────────────────
     // Displays the same recordings the standalone RecordingActivity shows, but
@@ -2012,6 +2031,18 @@ class MainActivity : AppCompatActivity() {
                 ?.visibility = android.view.View.GONE
         }
 
+        // Scan tab: wire up the embedded frequency scanner.
+        pager.post { setupScanTab() }
+
+        // Scan tab is hidden by default; shown only when explicitly invoked via
+        // showScanTab() (Scanner button / FAB) — it isn't tied to a DemodMode
+        // like the protocol tabs above, so it starts hidden and stays hidden
+        // until the user asks for it.
+        pager.post {
+            binding.controlTabLayout.getTabAt(ControlsPagerAdapter.TAB_SCAN)?.view
+                ?.visibility = android.view.View.GONE
+        }
+
         // Catch-all: every setup*Tab() call above is itself deferred via
         // pager.post, and several of them (chips, embedded monitors) change
         // their tab's natural height once they finish building. Queuing this
@@ -2201,8 +2232,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         ctrlViews.btnScanner?.setOnClickListener {
-            startActivity(android.content.Intent(this,
-                com.radiosport.ninegradio.ui.ScannerActivity::class.java))
+            showScanTab()
         }
         ctrlViews.btnDebugPanel?.setOnClickListener {
             startActivity(android.content.Intent(this,
@@ -2323,7 +2353,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupFabMenu() {
         binding.fabScan.setOnClickListener {
-            startActivity(Intent(this, ScannerActivity::class.java))
+            showScanTab()
         }
         binding.fabBookmark.setOnClickListener {
             bookmarkCurrentFrequency()
@@ -4103,6 +4133,455 @@ class MainActivity : AppCompatActivity() {
         dstarCollectJob = null
         ctrlViews.tvDstarTabStatus?.text = "Idle"
         ctrlViews.tvDstarTabMode?.text   = "Not started"
+    }
+
+    // ─── Scan drawer tab ──────────────────────────────────────────────────────
+    //
+    // The Scan tab is a hidden tab exactly like APRS/ACARS/DMR/YSF/D-STAR/Dig
+    // above, with one difference: those tabs reveal themselves automatically
+    // when their DemodMode is selected, whereas this one has no associated
+    // DemodMode -- it only becomes visible when explicitly invoked via
+    // [showScanTab] (wired to the Settings tab's Scanner button and the main
+    // FAB in [setupSettingsTab]/[setupFabMenu]), and hides again via
+    // [hideScanTab] (its own Close button, or when the drawer needs it gone).
+    //
+    // This is the app's only frequency-scanning UI -- a separate standalone
+    // ScannerActivity previously duplicated this same functionality and has
+    // been removed to avoid the two implementations drifting out of sync.
+    private fun setupScanTab() {
+        val listView = ctrlViews.listScanTabHits ?: return
+
+        val modes = DemodMode.values().map { it.displayName }
+        ctrlViews.spinnerScanTabMode?.adapter =
+            ArrayAdapter(this, android.R.layout.simple_spinner_item, modes)
+        ctrlViews.spinnerScanTabMode?.setSelection(viewModel.demodMode.value.ordinal)
+
+        ctrlViews.etScanTabStart?.setText("%.4f".format(viewModel.centerFreqHz.value / 1e6))
+
+        // Scan parameter memory slots -- stash/recall a full parameter set so the user
+        // doesn't have to retype range/step/squelch/dwell/mode each session.
+        val scanTabMemPrefs = getSharedPreferences("scan_memory_slots", MODE_PRIVATE)
+        val scanTabMemSlotCount = 5
+        val scanTabMemSlotLabels = (1..scanTabMemSlotCount).map { slot ->
+            if (scanTabMemPrefs.getString("slot_$slot", null) != null) "Slot $slot (saved)" else "Slot $slot (empty)"
+        }.toMutableList()
+        val scanTabMemSlotAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, scanTabMemSlotLabels)
+        ctrlViews.spinnerScanTabMemorySlot?.adapter = scanTabMemSlotAdapter
+
+        fun refreshScanTabMemSlotLabels() {
+            for (i in 0 until scanTabMemSlotCount) {
+                val slot = i + 1
+                val saved = scanTabMemPrefs.getString("slot_$slot", null)
+                scanTabMemSlotAdapter.remove(scanTabMemSlotAdapter.getItem(i))
+                scanTabMemSlotAdapter.insert(if (saved != null) "Slot $slot (saved)" else "Slot $slot (empty)", i)
+            }
+            scanTabMemSlotAdapter.notifyDataSetChanged()
+        }
+
+        ctrlViews.btnScanTabMemSave?.setOnClickListener {
+            val slot = (ctrlViews.spinnerScanTabMemorySlot?.selectedItemPosition ?: 0) + 1
+            val params = JSONObject().apply {
+                put("startMhz", ctrlViews.etScanTabStart?.text?.toString() ?: "")
+                put("stopMhz", ctrlViews.etScanTabStop?.text?.toString() ?: "")
+                put("stepHz", ctrlViews.etScanTabStep?.text?.toString() ?: "")
+                put("squelchDb", ctrlViews.etScanTabSquelch?.text?.toString() ?: "")
+                put("dwellMs", ctrlViews.etScanTabDwell?.text?.toString() ?: "")
+                put("modeIdx", ctrlViews.spinnerScanTabMode?.selectedItemPosition ?: 0)
+                put("scanDown", ctrlViews.switchScanTabDirection?.isChecked ?: false)
+                put("adaptive", ctrlViews.switchScanTabAdaptive?.isChecked ?: false)
+            }
+            scanTabMemPrefs.edit().putString("slot_$slot", params.toString()).apply()
+            refreshScanTabMemSlotLabels()
+            Snackbar.make(binding.root, "Saved scan parameters to slot $slot", Snackbar.LENGTH_SHORT).show()
+        }
+
+        ctrlViews.btnScanTabMemLoad?.setOnClickListener {
+            val slot = (ctrlViews.spinnerScanTabMemorySlot?.selectedItemPosition ?: 0) + 1
+            val raw = scanTabMemPrefs.getString("slot_$slot", null)
+            if (raw == null) {
+                Snackbar.make(binding.root, "Slot $slot is empty", Snackbar.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            try {
+                val params = JSONObject(raw)
+                ctrlViews.etScanTabStart?.setText(params.getString("startMhz"))
+                ctrlViews.etScanTabStop?.setText(params.getString("stopMhz"))
+                ctrlViews.etScanTabStep?.setText(params.getString("stepHz"))
+                ctrlViews.etScanTabSquelch?.setText(params.getString("squelchDb"))
+                ctrlViews.etScanTabDwell?.setText(params.getString("dwellMs"))
+                ctrlViews.spinnerScanTabMode?.setSelection(params.optInt("modeIdx", 0))
+                ctrlViews.switchScanTabDirection?.isChecked = params.optBoolean("scanDown", false)
+                ctrlViews.switchScanTabAdaptive?.isChecked = params.optBoolean("adaptive", false)
+                Snackbar.make(binding.root, "Loaded scan parameters from slot $slot", Snackbar.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Snackbar.make(binding.root, "Slot $slot is corrupted", Snackbar.LENGTH_SHORT).show()
+            }
+        }
+
+        scanTabHitAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, scanTabHitLog)
+        listView.adapter = scanTabHitAdapter
+        listView.setOnItemClickListener { _, _, pos, _ ->
+            val hz = scanTabHitFreqs.getOrNull(pos) ?: return@setOnItemClickListener
+            viewModel.setFrequency(hz)
+        }
+        listView.setOnItemLongClickListener { _, _, pos, _ ->
+            val hz = scanTabHitFreqs.getOrNull(pos) ?: return@setOnItemLongClickListener true
+            AlertDialog.Builder(this)
+                .setTitle("${"%.4f".format(hz / 1e6)} MHz")
+                .setMessage("Lock this frequency out of the current scan? It will be skipped until the scan is stopped.")
+                .setPositiveButton("Lock out") { _, _ ->
+                    scanTabScanner?.lockout(hz)
+                    Snackbar.make(binding.root, "Locked out ${"%.4f".format(hz / 1e6)} MHz", Snackbar.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+            true
+        }
+
+        // Tabulated channel view -- one row per configured channel,
+        // refreshed in place as the scan runs (see attachScanTabCollectors'
+        // collector on sc.channelTable below), rather than an append-only
+        // log like listScanTabHits above.
+        val channelListView = ctrlViews.listScanTabChannelTable
+        scanTabChannelAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, scanTabChannelRows)
+        channelListView?.adapter = scanTabChannelAdapter
+        channelListView?.setOnItemClickListener { _, _, pos, _ ->
+            val hz = scanTabChannelFreqs.getOrNull(pos) ?: return@setOnItemClickListener
+            viewModel.setFrequency(hz)
+        }
+        channelListView?.setOnItemLongClickListener { _, _, pos, _ ->
+            val hz = scanTabChannelFreqs.getOrNull(pos) ?: return@setOnItemLongClickListener true
+            AlertDialog.Builder(this)
+                .setTitle("${"%.4f".format(hz / 1e6)} MHz")
+                .setMessage("Lock this frequency out of the current scan? It will be skipped until the scan is stopped.")
+                .setPositiveButton("Lock out") { _, _ ->
+                    scanTabScanner?.lockout(hz)
+                    Snackbar.make(binding.root, "Locked out ${"%.4f".format(hz / 1e6)} MHz", Snackbar.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+            true
+        }
+
+        fun resetScanTabControls() {
+            scanTabScanning = false
+            scanTabPaused = false
+            scanTabSearching = false
+            ctrlViews.btnScanTabStartStop?.text = "Start Scan"
+            ctrlViews.btnScanTabPause?.text = "Pause"
+            ctrlViews.btnScanTabPause?.isVisible = false
+            ctrlViews.btnScanTabSearch?.text = "Search Mode"
+            ctrlViews.btnScanTabSearch?.isEnabled = true
+            ctrlViews.btnScanTabStartStop?.isEnabled = true
+            ctrlViews.progressScanTab?.isVisible = false
+        }
+
+        fun scanTabSource(): Pair<RtlSdrService, IqSource>? {
+            val svc = sdrService
+            if (svc == null) {
+                Snackbar.make(binding.root, "No RTL-SDR connected", Snackbar.LENGTH_SHORT).show()
+                return null
+            }
+            val source = svc.source
+            if (source == null) {
+                Snackbar.make(binding.root, "No IQ source connected", Snackbar.LENGTH_SHORT).show()
+                return null
+            }
+            return svc to source
+        }
+
+        fun signalLevelProviderFor(svc: RtlSdrService, source: IqSource): () -> Float = {
+            // Channel-specific dBFS at the tuned (DC) frequency -- NOT the
+            // wideband spectrum peak (statsFlow.signalDb). The wideband peak
+            // reflects the strongest signal anywhere across the whole
+            // captured window (e.g. 2 MHz), so as the scanner retuned
+            // channel to channel it barely changed and Squelch dB ended up
+            // gating on an essentially constant, channel-irrelevant value.
+            // narrowbandCenterDb averages only the FFT bins around the tuned
+            // centre frequency, so it actually reflects the channel
+            // currently being probed. See FrequencyScanner / DspEngine
+            // squelch fix notes above (DspEngine.narrowbandCenterDb).
+            svc.dspEngine?.statsFlow?.value?.narrowbandCenterDb ?: source.statusFlow.value.signalStrengthDb
+        }
+
+        fun attachScanTabCollectors(sc: com.radiosport.ninegradio.scanner.FrequencyScanner) {
+            scanTabStatusJob?.cancel()
+            scanTabStatusJob = lifecycleScope.launch {
+                sc.status.collectLatest { status ->
+                    ctrlViews.progressScanTab?.progress = (status.progress * 100).toInt()
+                    ctrlViews.tvScanTabCurrentFreq?.text = "${"%.4f".format(status.currentFreqHz / 1e6)} MHz"
+                    ctrlViews.tvScanTabHits?.text = "Hits: ${status.hitsFound}"
+                    ctrlViews.tvScanTabSignal?.text = "${"%.1f".format(status.signalDb)} dB"
+                    ctrlViews.tvScanTabNoiseFloor?.text = "Floor: ${"%.1f".format(status.noiseFloorDb)} dB"
+                    ctrlViews.tvScanTabRate?.text = "${"%.1f".format(status.channelsPerSecond)} ch/s"
+                }
+            }
+            scanTabHitsJob?.cancel()
+            scanTabHitsJob = lifecycleScope.launch {
+                sc.hits.collect { hit ->
+                    val ts = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(hit.timestampMs))
+                    val tag = when (hit.source) {
+                        com.radiosport.ninegradio.scanner.FrequencyScanner.HitSource.PRIORITY -> " ★"
+                        com.radiosport.ninegradio.scanner.FrequencyScanner.HitSource.SEARCH -> " ?"
+                        else -> ""
+                    }
+                    val entry = "[$ts]  ${"%.4f".format(hit.freqHz / 1e6)} MHz  " +
+                        "${"%.0f".format(hit.signalDb)}dB$tag"
+                    scanTabHitLog.add(0, entry)
+                    scanTabHitFreqs.add(0, hit.freqHz)
+                    if (scanTabHitLog.size > 300) {
+                        scanTabHitLog.removeAt(scanTabHitLog.size - 1)
+                        scanTabHitFreqs.removeAt(scanTabHitFreqs.size - 1)
+                    }
+                    scanTabHitAdapter?.notifyDataSetChanged()
+
+                    // Persist every confirmed hit, same as the standalone scanner.
+                    val db = (application as com.radiosport.ninegradio.RtlSdrApplication).database
+                    lifecycleScope.launch {
+                        db.signalLogDao().insert(
+                            com.radiosport.ninegradio.data.SignalLog(
+                                frequencyHz = hit.freqHz,
+                                demodMode = hit.mode.name,
+                                signalDb = hit.signalDb,
+                                timestamp = hit.timestampMs,
+                                notes = hit.source.name.lowercase()
+                            )
+                        )
+                    }
+                }
+            }
+
+            scanTabChannelTableJob?.cancel()
+            scanTabChannelTableJob = lifecycleScope.launch {
+                sc.channelTable.collectLatest { rows ->
+                    scanTabChannelRows.clear()
+                    scanTabChannelFreqs.clear()
+                    for (row in rows) {
+                        val activeMark = if (row.active) "\u25CF " else "\u25CB "
+                        val ageSec = if (row.lastUpdatedMs > 0)
+                            (System.currentTimeMillis() - row.lastUpdatedMs) / 1000
+                        else null
+                        val powerText = if (row.lastUpdatedMs > 0) "${"%.1f".format(row.lastPowerDb)}dB" else "---"
+                        val hitsText = if (row.hitCount > 0) " hits:${row.hitCount}" else ""
+                        val ageText = if (ageSec != null) " (${ageSec}s ago)" else " (never)"
+                        val entry = "$activeMark${"%.4f".format(row.freqHz / 1e6)} MHz  $powerText$hitsText$ageText"
+                        scanTabChannelRows.add(entry)
+                        scanTabChannelFreqs.add(row.freqHz)
+                    }
+                    scanTabChannelAdapter?.notifyDataSetChanged()
+                }
+            }
+        }
+
+        ctrlViews.btnScanTabStartStop?.setOnClickListener {
+            if (!scanTabScanning) {
+                val (svc, source) = scanTabSource() ?: return@setOnClickListener
+
+                val startMhz = ctrlViews.etScanTabStart?.text?.toString()?.toDoubleOrNull() ?: 136.0
+                val stopMhz  = ctrlViews.etScanTabStop?.text?.toString()?.toDoubleOrNull() ?: (startMhz + 38.0)
+                val startHz = (startMhz * 1_000_000).toLong()
+                    .coerceIn(RtlSdrDevice.MIN_FREQ_HZ, RtlSdrDevice.MAX_FREQ_HZ)
+                val stopHz  = (stopMhz * 1_000_000).toLong()
+                    .coerceIn(startHz + 1, RtlSdrDevice.MAX_FREQ_HZ)
+                val stepHz  = ctrlViews.etScanTabStep?.text?.toString()?.toLongOrNull() ?: 12_500L
+                val snappedStartHz = FrequencyStepManager.snapToChannel(startHz, stepHz)
+                    .coerceIn(RtlSdrDevice.MIN_FREQ_HZ, RtlSdrDevice.MAX_FREQ_HZ)
+                val sqlDb   = ctrlViews.etScanTabSquelch?.text?.toString()?.toFloatOrNull() ?: -80f
+                val dwellMs = ctrlViews.etScanTabDwell?.text?.toString()?.toLongOrNull() ?: 200L
+                val modeIdx = ctrlViews.spinnerScanTabMode?.selectedItemPosition ?: 0
+                val mode    = DemodMode.values().getOrElse(modeIdx) { DemodMode.NFM }
+                val adaptive = ctrlViews.switchScanTabAdaptive?.isChecked ?: false
+
+                // The scanner retunes the raw IqSource directly (bypassing
+                // DspEngine.setCarrierFrequency), but DspEngine keeps demodulating
+                // and playing audio continuously through the retunes using whatever
+                // mode/squelch was active *before* Start Scan was pressed. Without
+                // this sync, a user who picks e.g. NFM in the scan tab's mode
+                // spinner would still hear (or fail to hear) audio demodulated in
+                // the previously-selected mode on every hit, and the live squelch
+                // gate would be completely unrelated to the scanner's own
+                // detection threshold. Apply the scan's mode/squelch to the live
+                // demod chain before the sweep starts so audio on a hit is
+                // actually correct for the mode the user configured.
+                svc.setDemodMode(mode)
+                svc.setSquelch(sqlDb)
+
+                scanTabScanner = com.radiosport.ninegradio.scanner.FrequencyScanner(
+                    source, signalLevelProvider = signalLevelProviderFor(svc, source)
+                ).also { sc ->
+                    sc.startScan(com.radiosport.ninegradio.scanner.FrequencyScanner.ScanConfig(
+                        startFreqHz = snappedStartHz,
+                        stopFreqHz  = stopHz,
+                        stepHz = stepHz,
+                        squelchDb = sqlDb,
+                        adaptiveSquelch = adaptive,
+                        dwellTimeMs = dwellMs,
+                        mode = mode,
+                        scanUp = !(ctrlViews.switchScanTabDirection?.isChecked ?: false),
+                        label = "${"%.3f".format(startMhz)}-${"%.3f".format(stopMhz)} MHz"
+                    ))
+                    attachScanTabCollectors(sc)
+                }
+                scanTabScanning = true
+                ctrlViews.btnScanTabStartStop?.text = "Stop Scan"
+                ctrlViews.btnScanTabPause?.isVisible = true
+                ctrlViews.progressScanTab?.isVisible = true
+                ctrlViews.btnScanTabSearch?.isEnabled = false
+            } else {
+                scanTabScanner?.stopScan()
+                scanTabScanner = null
+                ctrlViews.btnScanTabSearch?.isEnabled = true
+                resetScanTabControls()
+            }
+        }
+
+        ctrlViews.btnScanTabPause?.setOnClickListener {
+            if (!scanTabPaused) {
+                scanTabScanner?.pauseScan()
+                ctrlViews.btnScanTabPause?.text = "Resume"
+                scanTabPaused = true
+            } else {
+                scanTabScanner?.resumeScan()
+                ctrlViews.btnScanTabPause?.text = "Pause"
+                scanTabPaused = false
+            }
+        }
+
+        ctrlViews.btnScanTabSearch?.setOnClickListener {
+            if (!scanTabSearching) {
+                val (svc, source) = scanTabSource() ?: return@setOnClickListener
+                val startMhz = ctrlViews.etScanTabStart?.text?.toString()?.toDoubleOrNull() ?: 136.0
+                val stopMhz  = ctrlViews.etScanTabStop?.text?.toString()?.toDoubleOrNull() ?: (startMhz + 38.0)
+                val startHz = (startMhz * 1_000_000).toLong().coerceIn(RtlSdrDevice.MIN_FREQ_HZ, RtlSdrDevice.MAX_FREQ_HZ)
+                val stopHz  = (stopMhz * 1_000_000).toLong().coerceIn(startHz + 1, RtlSdrDevice.MAX_FREQ_HZ)
+                val modeIdx = ctrlViews.spinnerScanTabMode?.selectedItemPosition ?: 0
+                val mode    = DemodMode.values().getOrElse(modeIdx) { DemodMode.NFM }
+                // Same squelch controls the regular scan uses — search mode
+                // previously ignored these entirely and always ran with a
+                // forced adaptive threshold, which is why it picked up noise
+                // regardless of what was set here.
+                val sqlDb   = ctrlViews.etScanTabSquelch?.text?.toString()?.toFloatOrNull() ?: -80f
+                val adaptive = ctrlViews.switchScanTabAdaptive?.isChecked ?: false
+
+                // See the matching comment in the Start Scan handler: keep the
+                // live demod chain in sync with what the scan tab is configured
+                // for, so audio on a hit is intelligible.
+                svc.setDemodMode(mode)
+                svc.setSquelch(sqlDb)
+
+                scanTabScanner = com.radiosport.ninegradio.scanner.FrequencyScanner(
+                    source, signalLevelProvider = signalLevelProviderFor(svc, source)
+                ).also { sc ->
+                    sc.startSearch(
+                        startFreqHz = startHz, stopFreqHz = stopHz, mode = mode,
+                        squelchDb = sqlDb, adaptiveSquelch = adaptive
+                    )
+                    attachScanTabCollectors(sc)
+                }
+                scanTabSearching = true
+                scanTabScanning = true
+                ctrlViews.btnScanTabSearch?.text = "Stop Search"
+                ctrlViews.btnScanTabStartStop?.isEnabled = false
+                ctrlViews.progressScanTab?.isVisible = true
+            } else {
+                scanTabScanner?.stopScan()
+                scanTabScanner = null
+                ctrlViews.btnScanTabStartStop?.isEnabled = true
+                resetScanTabControls()
+            }
+        }
+
+        ctrlViews.btnScanTabReset?.setOnClickListener {
+            // Stop any in-progress scan/search so the reset state is clean.
+            scanTabScanner?.stopScan()
+            scanTabScanner?.destroy()
+            scanTabScanner = null
+            ctrlViews.btnScanTabStartStop?.isEnabled = true
+            ctrlViews.btnScanTabSearch?.isEnabled = true
+            resetScanTabControls()
+
+            // Clear the scan results list.
+            scanTabHitLog.clear()
+            scanTabHitFreqs.clear()
+            scanTabHitAdapter?.notifyDataSetChanged()
+
+            // Clear the tabulated channel view too.
+            scanTabChannelRows.clear()
+            scanTabChannelFreqs.clear()
+            scanTabChannelAdapter?.notifyDataSetChanged()
+
+            // Reset the live status readouts.
+            ctrlViews.progressScanTab?.progress = 0
+            ctrlViews.tvScanTabCurrentFreq?.text = "---"
+            ctrlViews.tvScanTabHits?.text = "Hits: 0"
+            ctrlViews.tvScanTabSignal?.text = "--- dB"
+            ctrlViews.tvScanTabNoiseFloor?.text = "Floor: --- dB"
+            ctrlViews.tvScanTabRate?.text = "--- ch/s"
+
+            Snackbar.make(binding.root, "Scan list reset", Snackbar.LENGTH_SHORT).show()
+        }
+
+        ctrlViews.btnScanTabBusiest?.setOnClickListener {
+            val sc = scanTabScanner
+            if (sc == null) {
+                Snackbar.make(binding.root, "Start a scan first", Snackbar.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val top = sc.topFrequencies(15)
+            if (top.isEmpty()) {
+                Snackbar.make(binding.root, "No hits recorded yet", Snackbar.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val message = top.joinToString("\n") { (hz, count) ->
+                "${"%.4f".format(hz / 1e6)} MHz  —  $count hit${if (count == 1) "" else "s"}"
+            }
+            AlertDialog.Builder(this)
+                .setTitle("Busiest Frequencies")
+                .setMessage(message)
+                .setPositiveButton("Close", null)
+                .show()
+        }
+
+        ctrlViews.btnScanTabClose?.setOnClickListener { hideScanTab() }
+    }
+
+    /**
+     * Reveals the Scan tab and navigates to it. Mirrors [updateAprsTabVisibility]
+     * et al., except there is no associated DemodMode driving it -- it is only
+     * ever called from an explicit user action (Scanner button / FAB).
+     */
+    private fun showScanTab() {
+        val tabLayout = binding.controlTabLayout
+        val scanTabIndex = ControlsPagerAdapter.TAB_SCAN
+        tabLayout.getTabAt(scanTabIndex)?.view?.visibility = android.view.View.VISIBLE
+        binding.controlViewPager.setCurrentItem(scanTabIndex, true)
+        ctrlViews.etScanTabStart?.setText("%.4f".format(viewModel.centerFreqHz.value / 1e6))
+    }
+
+    /**
+     * Stops any running scan and hides the Scan tab again. If the currently
+     * selected tab is Scan, falls back to the Tune tab so the drawer never
+     * ends up parked on a hidden tab.
+     */
+    private fun hideScanTab() {
+        scanTabScanner?.stopScan()
+        scanTabScanner?.destroy()
+        scanTabScanner = null
+        scanTabStatusJob?.cancel()
+        scanTabHitsJob?.cancel()
+        scanTabScanning = false
+        scanTabPaused = false
+        scanTabSearching = false
+        ctrlViews.btnScanTabStartStop?.text = "Start Scan"
+        ctrlViews.btnScanTabPause?.isVisible = false
+        ctrlViews.progressScanTab?.isVisible = false
+
+        val tabLayout = binding.controlTabLayout
+        val scanTabIndex = ControlsPagerAdapter.TAB_SCAN
+        if (binding.controlViewPager.currentItem == scanTabIndex) {
+            binding.controlViewPager.setCurrentItem(ControlsPagerAdapter.TAB_TUNE, false)
+        }
+        tabLayout.getTabAt(scanTabIndex)?.view?.visibility = android.view.View.GONE
     }
 
 } // end MainActivity
