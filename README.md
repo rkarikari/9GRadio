@@ -4,11 +4,13 @@ A complete, production-quality Android SDR application written in Kotlin, purpos
 for the **RTL-SDR V4** dongle (RTL2832U + R828D, 28.8 MHz TCXO).
 
 **Package:** `com.radiosport.ninegradio`  
-**Version:** 1.33
+**Version:** 1.48
 
 ---
 
-![9GRadio](https://github.com/rkarikari/9GRadio/blob/master/images/9GRadio.gif)
+![9GRadio](https://github.com/rkarikari/9GRadio/blob/master/images/9GRadio.gif) 
+| 
+![9GRadio](https://github.com/rkarikari/9GRadio/blob/master/images/9GRadio2.gif)
 
 ---
 
@@ -43,6 +45,48 @@ talker alias, encryption/emergency flags, and total frame count — instead of o
 A new row only appears when a genuinely new call starts (different talker/destination, or the
 same one keying up again after the previous transmission has clearly ended).
 
+### Aircraft, Marine & Datalink Tracking
+| Mode | Details |
+|---|---|
+| **ADS-B** | 1090 MHz Mode S decoding via a vendored, unmodified `readsb` — live aircraft list, radar-scope view, and full map view with callsign, altitude, speed, and position |
+| **AIS** | 161.975/162.025 MHz marine VHF (both channels captured in one 300 kHz-wide tune), decoded via vendored AIS-catcher — live vessel map with MMSI, ship name, course, and speed |
+| **ACARS** | 8 preset VHF channels (129–131 MHz band), up to 4 monitored simultaneously — live message log with registration/flight/label filtering and per-channel stats |
+| **RDS** | Program Identification (PI), Program Service name, and RadioText decoded from any WFM broadcast station via vendored `redsea`, shown as a live overlay on the spectrum display |
+
+### Multilateration (MLAT)
+A full multilateration stack for locating transmitters that don't self-report a position —
+turns 2+ networked 9GRadio receivers (or any receiver speaking the same wire protocol) into a
+station network that solves for a transmitter's position from time-difference-of-arrival (TDOA)
+across stations, the same principle real-world ADS-B MLAT networks use.
+
+- **Protocol-agnostic**: ADS-B, AIS, ACARS, RDS, and digital voice (DMR/D-STAR/YSF/dPMR/
+  NXDN) can all be located this way — each protocol's decoded identity (ICAO, MMSI, RDS PI code,
+  radio ID) is what lets multiple stations recognize they've heard the *same* transmission and
+  contribute it to the same fix, no manual coordination required. Analog voice/AM/FM (no
+  decodable identity) is also supported on a best-effort basis, keyed by carrier-onset timing on
+  a shared tuned frequency. POCSAG/FLEX paging is intentionally excluded — pagers are fixed
+  infrastructure, so locating them adds nothing.
+- **Own GPS position** pulled automatically from the device's location provider — nothing to
+  enter manually, and a moved/newly-set-up receiver never contributes a stale position by
+  accident.
+- **Run your own station**, **join a station network** (this device's observations flow to an
+  aggregation server — a remote one, or another 9GRadio phone acting as one), and/or **run the
+  aggregation server yourself** for other receivers to join, all independently toggleable.
+- **Contribute to a real public MLAT network** (ADSBExchange, adsb.lol, or a private
+  `mlat-server`) using the genuine upstream wire protocol, entirely separate from this app's own
+  station-network mode — run either, both, or neither.
+- **Live MLAT Dashboard**: GPS fix quality, client/server link status, station/peer counts,
+  fixes solved per second, sent/received observation counts, and a rolling **network self-test**
+  that solves a synthetic moving target every cycle to continuously verify the whole pipeline
+  — station timing, geometry, and solver — end to end, without needing a real transmission in
+  the air to test against.
+- **Station roster + map**: every contributing station plotted on a live map, including
+  synthesized "virtual" stations (shown distinctly) that fill in for a missing 3rd/4th station
+  when only 2 real receivers are connected, so the self-test and accuracy estimate still run.
+- **Geometry-aware accuracy estimate**: a live GDOP-based estimate of achievable fix accuracy at
+  your stations' actual current spacing, alongside what it would be at an ideal reference
+  spacing — makes it immediately clear whether your receivers are placed usefully far apart.
+
 ### DSP Engine
 - **GNU Radio Android backend** ([gnuradio-android](https://github.com/bastibl/gnuradio-android)) — when the
   toolchain is present, all core DSP primitives are accelerated by **VOLK** (Vectorized Library for Kernels),
@@ -54,11 +98,21 @@ same one keying up again after the previous transmission has clearly ended).
 - Pure-Kotlin fallback on x86 or if native library unavailable
 - **FM de-emphasis** (75 µs NA / 50 µs EU)
 - **WFM stereo pilot** decoder (19 kHz PLL → 38 kHz subcarrier)
+- **RDS decoder** (vendored `redsea`, MIT): Program Identification, Program Service name,
+  RadioText, and Programme Type decoded from any WFM broadcast station, shown live over the
+  spectrum display
 - **APRS** decoder: AX.25 frame sync, NRZI, bit-stuffing removal, position parsing; optional
   **dual-watch** mode (two simultaneous APRS channels) on device sample rates ≥ ~820 kS/s
 - **DSD-Neo digital voice decoding** (vendored `mbelib-neo`, GPL-2.0): decodes DMR, D-STAR,
   YSF, **dPMR**, and **NXDN** voice frames from the NFM discriminator output; `Dig` mode
   auto-identifies the protocol from its sync word and decodes voice for all five
+- **ADS-B decoding** (vendored, unmodified `readsb`, GPL-2.0): full Mode S/1090ES decode running
+  as a native child process fed raw IQ over stdin, with hardware/GPS-referenced timestamps
+  precise enough to drive multilateration directly
+- **AIS decoding** (vendored `AIS-catcher`, GPL-3.0): dual-channel marine VHF Class A/B
+  transponder decode
+- **ACARS decoding** (vendored `acarsdec`, GPL-2.0): up to 4 VHF channels demodulated
+  simultaneously
 - **Noise blanker** and **noise reducer** (adaptive noise-floor calibration, re-calibrates on
   mode/bandwidth change)
 - Squelch gate with per-mode threshold
@@ -115,15 +169,6 @@ same one keying up again after the previous transmission has clearly ended).
 - Colour-coded zones: green / yellow / red
 - Live dBFS numeric readout
 
-### Memory Channels
-- Unlimited channels in named groups
-- Stores: frequency, mode, sample rate, gain, squelch, bias-tee, direct sampling, PPM, notes
-- Swipe-to-delete, tap-to-tune, long-press to edit
-- JSON export / import
-
-### Frequency Database (built-in)
-50+ pre-loaded entries across: FM Broadcast · Aviation · Weather · Ham Radio · Marine ·  
-ISM/IoT · Shortwave · HF Beacons · Satellite · Paging · APRS
 
 ### Bookmarks
 - Add, label, and colour-code frequency bookmarks
@@ -149,9 +194,8 @@ display or RF settings from scratch.
 ### Recording
 - **IQ recording**: raw uint8 (`.iq`), GZip-compressed (`.iq.gz`), float32 (`.cf32`)
 - **Audio recording**: WAV, 16-bit PCM
-- Recordings browser with playback (WAV) and share
+- Recordings browser with playback (IQ / WAV) and share
 - Recording metadata stored in Room database
-- Auto-stop on size limit with optional 2 GB splitting
 
 ### Settings
 - Full PreferenceScreen with 75+ configurable options across RF, display, and recording categories
@@ -178,7 +222,8 @@ display or RF settings from scratch.
 │  Activities / Fragments (UI layer)                       │
 │  MainActivity · ScannerActivity · MemoryActivity        │
 │  RecordingActivity · SettingsActivity · SpectrumActivity│
-│  AprsActivity · DebugPanelActivity                        │
+│  AprsActivity · AdsbActivity · AcarsActivity            │
+│  MlatSettingsActivity · DebugPanelActivity              │
 │  RtlSdrTestActivity                                       │
 └──────────────────┬──────────────────────────────────────┘
                    │ bind
@@ -196,9 +241,19 @@ display or RF settings from scratch.
 │  │  R828D tuner  │   │  Resampler · AudioEngine      │  │
 │  │  Bias-tee     │   │  IqRecorder · ProtocolDecoders│  │
 │  │  Direct-samp  │   │  DigitalVoiceDecoder (mbelib) │  │
-│  └───────────────┘   └───────────────────────────────┘  │
-└─────────────────────────────────────────────────────────┘
-                   │
+│  │               │   │  ReadsbProcess (ADS-B)        │  │
+│  │               │   │  AisCatcherProcess (AIS)      │  │
+│  │               │   │  AcarsMultiChannelDecoder     │  │
+│  │               │   │  RdsDecoder (redsea)          │  │
+│  └───────────────┘   └───────────────┬───────────────┘  │
+└───────────────────────────────────────┼──────────────────┘
+                                         │ submitDetection()
+                        ┌────────────────▼────────────────┐
+                        │  MlatManager                     │
+                        │  MlatClient · MlatServer          │
+                        │  UpstreamMlatClient · BeastReader │
+                        └────────────────┬──────────────────┘
+                                         │
 ┌──────────────────▼──────────────────────────────────────┐
 │  Room Database                                           │
 │  MemoryChannel · Bookmark · ScanEntry · Recording       │
@@ -231,6 +286,51 @@ and decoded via the `Dig` mode) is powered by a vendored copy of `mbelib-neo`
 (GPL-2.0-or-later) under `app/src/main/cpp/mbelib-neo/`, built as part of the normal NDK
 build alongside the rest of `app/src/main/cpp/`.
 
+### readsb (ADS-B / Mode S)
+
+ADS-B decoding is powered by a vendored, unmodified copy of
+[`readsb`](https://github.com/rkarikari/readsb) (GPL-2.0-or-later) under
+`app/src/main/cpp/readsb/`, built by `cpp/CMakeLists.txt` as a standalone
+native executable (not a JNI library — readsb is an application with its own
+main loop and network servers, so it is run as a child process rather than
+called into). readsb is a maintained fork/successor of dump1090-fa /
+dump1090-mutability and preserves the same `--ifile`/`--iformat UC8` stdin
+input mode and Basestation ("SBS") network output this app relies on. The
+app feeds it raw IQ samples over stdin in RTL-SDR's native UC8 format and
+reads back decoded aircraft state over its SBS output; see
+`app/src/main/java/com/radiosport/ninegradio/dsp/ReadsbProcess.kt`. readsb's
+history/trace compression additionally needs `libzstd`, which the NDK
+doesn't ship, so it is vendored verbatim under `app/src/main/cpp/zstd/`
+(from https://github.com/facebook/zstd) and built as a small static object
+library the same way `mbelib-neo` is above.
+
+### AIS-catcher (marine AIS)
+
+AIS decoding is powered by a vendored, unmodified copy of
+[`AIS-catcher`](https://github.com/jvde-github/AIS-catcher) (GPL-3.0-or-later) under
+`app/src/main/cpp/ais-catcher/`, built the same way as readsb above — a standalone native
+executable run as a child process (AIS-catcher, like readsb, is a full application with its own
+device manager and network servers, not a single-entry-point library), fed raw IQ over stdin
+and read back over its own network output; see
+`app/src/main/java/com/radiosport/ninegradio/dsp/AisCatcherProcess.kt`.
+
+### redsea (RDS)
+
+RDS decoding is powered by a vendored, unmodified copy of
+[`redsea`](https://github.com/windytan/redsea) (MIT) under `app/src/main/cpp/redsea/`, built
+and run the same subprocess way as readsb/AIS-catcher above — fed raw composite MPX samples over
+stdin, decoded groups read back as JSON; see
+`app/src/main/java/com/radiosport/ninegradio/dsp/RedseaProcess.kt`.
+
+### acarsdec (ACARS)
+
+ACARS decoding is powered by a vendored copy of
+[`acarsdec`](https://github.com/f00b4r0/acarsdec) (GPL-2.0-or-later) under
+`app/src/main/cpp/acarsdec/`, built as a **JNI library** rather than a subprocess (unlike
+readsb/AIS-catcher/redsea above, acarsdec's demodulate/decode logic is called directly per IQ
+block rather than run as an independent standalone application); see
+`app/src/main/java/com/radiosport/ninegradio/dsp/AcarsNative.kt`.
+
 ### Steps
 
 ```bash
@@ -244,7 +344,7 @@ cd 9GRadio
 ./gradlew installDebug
 
 # Build release APK (requires signing config)
-# Output: app/build/outputs/apk/release/9GRadio_v1.33_release.apk
+# Output: app/build/outputs/apk/release/9GRadio_v1.48_release.apk
 ./gradlew assembleRelease
 ```
 
@@ -276,7 +376,13 @@ cd 9GRadio
 │       │   ├── fm_demod.cpp
 │       │   ├── resampler.cpp
 │       │   ├── include/                     # vocoder.h, volk_android.h, iq_convert.h
-│       │   └── mbelib-neo/                  # vendored MBE vocoder library (GPL-2.0)
+│       │   ├── mbelib-neo/                  # vendored MBE vocoder library (GPL-2.0)
+│       │   ├── readsb/                      # vendored, unmodified readsb — ADS-B (GPL-2.0)
+│       │   ├── ais-catcher/                 # vendored, unmodified AIS-catcher (GPL-3.0)
+│       │   ├── redsea/                      # vendored, unmodified redsea — RDS (MIT)
+│       │   ├── acarsdec/                    # vendored acarsdec — ACARS, JNI (GPL-2.0)
+│       │   ├── liquid-dsp/                  # DSP primitives used by redsea/ais-catcher (MIT)
+│       │   └── zstd/                        # vendored zstd, readsb history compression (BSD/GPLv2)
 │       ├── java/com/radiosport/ninegradio/
 │       │   ├── RtlSdrApplication.kt        # Application class
 │       │   ├── audio/
@@ -295,20 +401,39 @@ cd 9GRadio
 │       │   │   ├── FftEngine.kt            # FFT + windowing + frame averaging
 │       │   │   ├── NativeDsp.kt            # JNI wrapper with Kotlin fallback
 │       │   │   ├── PolyphaseResampler.kt   # High-quality sample rate converter
-│       │   │   ├── ProtocolDecoders.kt     # APRS (AX.25)
+│       │   │   ├── ProtocolDecoders.kt     # APRS (AX.25), RDS submission
+│       │   │   ├── ReadsbProcess.kt        # ADS-B: feeds/reads vendored readsb subprocess
+│       │   │   ├── AisCatcherProcess.kt    # AIS: feeds/reads vendored AIS-catcher subprocess
+│       │   │   ├── AcarsNative.kt          # ACARS: JNI wrapper for vendored acarsdec
+│       │   │   ├── AcarsMultiChannelDecoder.kt # ACARS: up to 4 simultaneous channels
+│       │   │   ├── RdsDecoder.kt / RedseaProcess.kt # RDS: feeds/reads vendored redsea subprocess
 │       │   │   └── SourceDiagnostic.kt     # IQ source health diagnostics
+│       │   ├── mlat/
+│       │   │   ├── MlatManager.kt          # App-wide MLAT owner; protocol-agnostic submitDetection()
+│       │   │   ├── MlatMath.kt             # TDOA solver, GDOP, virtual station placement
+│       │   │   ├── MlatServer.kt           # Embedded aggregation server + network self-test
+│       │   │   ├── MlatClient.kt           # Forwards this device's observations to a server
+│       │   │   ├── MlatModels.kt           # Wire protocol / protocol-tag constants
+│       │   │   ├── BeastReader.kt          # Reads readsb's Beast output for ADS-B timestamps
+│       │   │   ├── UpstreamMlatClient.kt   # Contributes ADS-B to a real public MLAT network
+│       │   │   └── GnssTimeSource.kt       # GPS-referenced timing
 │       │   ├── recording/
 │       │   │   └── IqRecorder.kt           # IQ to disk (raw/gz/f32)
 │       │   ├── scanner/
 │       │   │   └── FrequencyScanner.kt     # Range + memory scan
 │       │   ├── ui/
 │       │   │   ├── AprsActivity.kt          # APRS station list / packet log
+│       │   │   ├── AdsbActivity.kt          # ADS-B live list, radar scope, map view
+│       │   │   ├── AcarsActivity.kt         # ACARS message log / channel filtering
+│       │   │   ├── MlatSettingsActivity.kt  # MLAT dashboard, config, self-test, station map
+│       │   │   ├── MlatStationMapView.kt    # MLAT station roster map
+│       │   │   ├── AdsbMapView.kt / AisMapView.kt # Map views for aircraft / vessels
 │       │   │   ├── ControlsTabManager.kt    # RF/Display drawer tab controls
 │       │   │   ├── DebugPanelActivity.kt    # Pipeline health monitor
 │       │   │   ├── FrequencyView.kt        # LCD frequency display + scroll tuning
 │       │   │   ├── MainActivity.kt         # Main screen
 │       │   │   ├── MainViewModel.kt        # State + commands + per-mode settings
-│       │   │   ├── OtherActivities.kt      # Settings, Recording, Spectrum activities
+│       │   │   ├── OtherActivities.kt      # Settings, Recording, Spectrum, ACARS activities
 │       │   │   ├── MemoryActivity.kt       # Memory channels browser
 │       │   │   ├── RtlSdrTestActivity.kt    # USB/tuner connectivity test screen
 │       │   │   ├── ScannerActivity.kt      # Scanner UI
@@ -389,6 +514,36 @@ Quick-reference settings for the smoothest experience on the RTL-SDR V4.
 - Prefer `.iq.gz` over raw `.iq` if storage is limited — GZip typically halves file size on
   narrowband captures with only a small CPU cost.
 
+### Aircraft, marine & datalink tracking (ADS-B / AIS / ACARS / RDS)
+- **ADS-B**: tune to 1090 MHz and select the **ADS-B** mode, then open the ADS-B activity for
+  the live aircraft list, radar scope, and map. Works best with a dedicated 1090 MHz antenna
+  (a general-purpose one will still pick up strong nearby traffic).
+- **AIS**: tune to 162.000 MHz and select **AIS** — this single tune covers both marine VHF
+  channels (161.975/162.025 MHz) at once, no channel switching needed.
+- **ACARS**: open the ACARS activity and pick a channel from the 8 presets, or leave it on the
+  default (131.725 MHz) — up to 4 channels can be monitored simultaneously.
+- **RDS**: select **WFM** or **WFM Stereo** on any strong local FM broadcast station — PI,
+  Program Service name, and RadioText appear automatically as an overlay on the spectrum display
+  once decoded; no separate activity to open.
+
+### Multilateration (MLAT)
+- Open the **MLAT** dashboard from the Settings drawer tab. Enable **Client** to contribute this
+  receiver's observations to a station network; GPS position is acquired automatically.
+- **Two receivers is the practical minimum** to get any fix at all, but accuracy depends heavily
+  on how far apart they are — closer receivers give a less reliable fix. The dashboard's
+  geometry-aware accuracy estimate tells you directly whether your current spacing is good
+  enough; if it isn't, moving a receiver farther away (or adding a 3rd/4th) is the fix, not a
+  setting.
+- To also **run the aggregation server** locally (so other 9GRadio receivers, or anything
+  speaking the same protocol, can join your network), enable **Server** and set a listen port.
+- To **contribute your ADS-B feed to a real public MLAT network** (ADSBExchange, adsb.lol, or a
+  private `mlat-server`), use the separate **upstream** section rather than the Client/Server
+  toggles above — it speaks the genuine upstream wire protocol, not this app's own.
+- Use the **network self-test** on the dashboard to sanity-check the whole pipeline (timing,
+  geometry, and solver) at any time — it doesn't need a real transmission in the air, and with
+  only 2 real stations connected it automatically fills in synthetic "virtual" stations so the
+  test can still run a full solve.
+
 ---
 
 
@@ -399,7 +554,17 @@ GPLv3 License — see LICENSE file.
 RTL-SDR® is a registered trademark of RTL-SDR Blog Ltd.  
 9GRadio is not affiliated with Realtek Semiconductor or RTL-SDR Blog Ltd.  
 Digital voice decoding uses vendored `mbelib-neo` (GPL-2.0-or-later) — see
-`app/src/main/cpp/mbelib-neo/LICENSES/`.
+`app/src/main/cpp/mbelib-neo/LICENSES/`.  
+ADS-B decoding uses a vendored, unmodified copy of
+`readsb` (GPL-2.0-or-later) — see `app/src/main/cpp/readsb/COPYING` —
+plus a vendored copy of `zstd` (BSD/GPLv2 dual-licensed) — see
+`app/src/main/cpp/zstd/LICENSE`.  
+AIS decoding uses a vendored, unmodified copy of `AIS-catcher`
+(GPL-3.0-or-later) — see `app/src/main/cpp/ais-catcher/LICENSE`.  
+RDS decoding uses a vendored, unmodified copy of `redsea` (MIT) — see
+`app/src/main/cpp/redsea/LICENSE`.  
+ACARS decoding uses a vendored copy of `acarsdec` (GPL-2.0-or-later) — see
+`app/src/main/cpp/acarsdec/LICENSE.md`.
 
 ---
 
