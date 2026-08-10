@@ -8,9 +8,7 @@ for the **RTL-SDR V4** dongle (RTL2832U + R828D, 28.8 MHz TCXO).
 
 ---
 
-![9GRadio](https://github.com/rkarikari/9GRadio/blob/master/images/9GRadio.gif) 
-| 
-![9GRadio](https://github.com/rkarikari/9GRadio/blob/master/images/9GRadio2.gif)
+![9GRadio](https://github.com/rkarikari/9GRadio/blob/master/images/9GRadio.gif)
 
 ---
 
@@ -169,6 +167,15 @@ across stations, the same principle real-world ADS-B MLAT networks use.
 - Colour-coded zones: green / yellow / red
 - Live dBFS numeric readout
 
+### Memory Channels
+- Unlimited channels in named groups
+- Stores: frequency, mode, sample rate, gain, squelch, bias-tee, direct sampling, PPM, notes
+- Swipe-to-delete, tap-to-tune, long-press to edit
+- JSON export / import
+
+### Frequency Database (built-in)
+50+ pre-loaded entries across: FM Broadcast · Aviation · Weather · Ham Radio · Marine ·  
+ISM/IoT · Shortwave · HF Beacons · Satellite · Paging · APRS
 
 ### Bookmarks
 - Add, label, and colour-code frequency bookmarks
@@ -194,8 +201,9 @@ display or RF settings from scratch.
 ### Recording
 - **IQ recording**: raw uint8 (`.iq`), GZip-compressed (`.iq.gz`), float32 (`.cf32`)
 - **Audio recording**: WAV, 16-bit PCM
-- Recordings browser with playback (IQ / WAV) and share
+- Recordings browser with playback (WAV) and share
 - Recording metadata stored in Room database
+- Auto-stop on size limit with optional 2 GB splitting
 
 ### Settings
 - Full PreferenceScreen with 75+ configurable options across RF, display, and recording categories
@@ -331,22 +339,12 @@ readsb/AIS-catcher/redsea above, acarsdec's demodulate/decode logic is called di
 block rather than run as an independent standalone application); see
 `app/src/main/java/com/radiosport/ninegradio/dsp/AcarsNative.kt`.
 
-### Steps
+### Steps (Android Studio)
 
-```bash
-git clone https://github.com/yourname/9GRadio
-cd 9GRadio
-
-# Build debug APK
-./gradlew assembleDebug
-
-# Install to connected device
-./gradlew installDebug
-
-# Build release APK (requires signing config)
-# Output: app/build/outputs/apk/release/9GRadio_v1.48_release.apk
-./gradlew assembleRelease
-```
+1. **Open the project.** Clone the repo, then in Android Studio choose **File → Open** and select the `9GRadio` folder. Wait for Gradle sync to finish.
+2. **Build the APK.** Use **Build → Build Bundle(s)/APK(s) → Build APK(s)**. When it finishes, click **locate** in the notification, or find the file under `app/build/outputs/apk/debug/`.
+3. **For a release APK:** use **Build → Generate Signed Bundle / APK**, follow the signing wizard, and find the output at `app/build/outputs/apk/release/9GRadio_v1.48_release.apk`.
+4. **Install and run.** Plug in a physical Android device with USB debugging enabled (an emulator can't access the RTL-SDR dongle over USB Host/OTG), then click the green **Run ▶** button to install and launch it.
 
 ### First Run
 1. Plug the RTL-SDR V4 dongle into your Android device via OTG adapter
