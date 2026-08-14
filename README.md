@@ -4,11 +4,11 @@ A complete, production-quality Android SDR application written in Kotlin, purpos
 for the **RTL-SDR V4** dongle (RTL2832U + R828D, 28.8 MHz TCXO).
 
 **Package:** `com.radiosport.ninegradio`  
-**Version:** 1.48
+**Version:** 1.55
 
 ---
 
-![9GRadio](https://github.com/rkarikari/9GRadio/blob/master/images/9GRadio.gif) | ![9GRadio](https://github.com/rkarikari/9GRadio/blob/master/images/9GRadio2.gif)
+![9GRadio](https://github.com/rkarikari/9GRadio/blob/master/images/9GRadio.gif)
 
 ---
 
@@ -42,6 +42,65 @@ single-line row that updates in place — showing start time, call duration, fra
 talker alias, encryption/emergency flags, and total frame count — instead of one row per frame.
 A new row only appears when a genuinely new call starts (different talker/destination, or the
 same one keying up again after the previous transmission has clearly ended).
+
+### Memory Slots
+Every demodulation mode gets **9 memory slots** to save frequencies and settings into, so you
+can jump between favorite stations on the same mode without retyping the frequency or re-doing
+your gain/filter setup each time.
+
+- Tap the **[ Slot # ]** button on the Mode tab to save what you're currently listening to and
+  move to the next slot — frequency, gain, filters, display settings, everything, all saved
+  together as one snapshot.
+- Each mode (AM, FM, USB, DMR, etc.) remembers its **own** set of 9 slots and its own **current**
+  slot, so switching from FM to USB and back always returns you to where you left off on each.
+- A little arrow button next to **[ Slot # ]** reverses the cycling direction (forward or
+  backward through the slots), for quickly stepping back to a slot you just passed.
+- A slot you've never used yet starts out matching Slot 0 (your mode's baseline setup), so it's
+  never a jarring blank/wrong-frequency surprise the first time you land on it.
+- **Nothing is ever lost**: 9GRadio automatically saves your current slot's settings the moment
+  before it switches away, whether you're cycling slots, switching modes, or tuning to an EiBi
+  station (see below) — you never need to manually "save" first.
+
+### EiBi Shortwave Schedule
+A built-in, searchable schedule of shortwave broadcast stations from around the world (sourced
+from the well-known EiBi frequency list), right inside the app — no need to look anything up
+separately.
+
+- Open the **EiBi** tab to see the full station table: frequency, station name, language,
+  target audience/region, broadcast times (UTC), and transmitter site.
+- **Tap any row** to tune straight to that station — 9GRadio switches to the right mode and
+  frequency for you automatically.
+- **Sort** the list by frequency, station name, language, target area, time, or transmitter
+  site, in either direction, using the sort chip above the table.
+- **Filter** the list down to what you actually want to hear, using the filter button:
+  - By **language** or **target area** (e.g. only English-language broadcasts, or only stations
+    aimed at your part of the world)
+  - By **mode** (AM, USB, LSB, CW, etc.)
+  - **Broadcast stations only** — hides utility/ham-adjacent signals mixed into the same list
+  - **Regular, dependable schedules only** — hides entries the schedule itself flags as
+    irregular, tentative, or test transmissions
+  - **On air right now** — only shows stations broadcasting at this exact moment (UTC)
+  - **Hide likely-dead bands** — uses your phone's location and the current time to estimate
+    which shortwave bands are realistically able to reach you right now (a real
+    propagation-based estimate, similar in spirit to what shortwave listeners call "MUF/FOT"),
+    and hides entries that are very unlikely to be audible so you're not wasting time on dead
+    frequencies. This is a helpful estimate, not a guarantee — real band conditions can always
+    differ.
+- Your sort order and filter choices are **remembered** between app launches, so you don't have
+  to set them up again every time.
+- Tuning to an EiBi station uses its own dedicated memory slot, so it never overwrites any of
+  your regular saved frequencies on the mode you were using.
+- **Stays current on its own** — once the EiBi tab is open, the list keeps itself up to date
+  automatically:
+  - Filters that depend on the clock ("On air right now", "Hide likely-dead bands") are
+    re-checked every minute, so stations quietly appear and disappear on their own as their
+    broadcast windows open/close and as propagation conditions change — no need to close and
+    reopen the tab or tap anything to see the current picture.
+  - The underlying schedule data itself is checked periodically and re-downloaded in the
+    background whenever it's gone stale (older than a week, or a new EiBi broadcast season has
+    started), so the list of stations stays fresh without ever needing to remember to hit
+    UPDATE. The **UPDATE** button is still there if you want to force a fresh download right
+    away.
 
 ### Aircraft, Marine & Datalink Tracking
 | Mode | Details |
@@ -339,12 +398,22 @@ readsb/AIS-catcher/redsea above, acarsdec's demodulate/decode logic is called di
 block rather than run as an independent standalone application); see
 `app/src/main/java/com/radiosport/ninegradio/dsp/AcarsNative.kt`.
 
-### Steps (Android Studio)
+### Steps
 
-1. **Open the project.** Clone the repo, then in Android Studio choose **File → Open** and select the `9GRadio` folder. Wait for Gradle sync to finish.
-2. **Build the APK.** Use **Build → Build Bundle(s)/APK(s) → Build APK(s)**. When it finishes, click **locate** in the notification, or find the file under `app/build/outputs/apk/debug/`.
-3. **For a release APK:** use **Build → Generate Signed Bundle / APK**, follow the signing wizard, and find the output at `app/build/outputs/apk/release/9GRadio_v1.48_release.apk`.
-4. **Install and run.** Plug in a physical Android device with USB debugging enabled (an emulator can't access the RTL-SDR dongle over USB Host/OTG), then click the green **Run ▶** button to install and launch it.
+```bash
+git clone https://github.com/yourname/9GRadio
+cd 9GRadio
+
+# Build debug APK
+./gradlew assembleDebug
+
+# Install to connected device
+./gradlew installDebug
+
+# Build release APK (requires signing config)
+# Output: app/build/outputs/apk/release/9GRadio_v1.48_release.apk
+./gradlew assembleRelease
+```
 
 ### First Run
 1. Plug the RTL-SDR V4 dongle into your Android device via OTG adapter
@@ -523,6 +592,34 @@ Quick-reference settings for the smoothest experience on the RTL-SDR V4.
 - **RDS**: select **WFM** or **WFM Stereo** on any strong local FM broadcast station — PI,
   Program Service name, and RadioText appear automatically as an overlay on the spectrum display
   once decoded; no separate activity to open.
+
+### Memory Slots
+- Set up a favorite frequency exactly how you like it (mode, gain, filters), then tap
+  **[ Slot # ]** to save it and move to the next slot — repeat for each station you want quick
+  access to.
+- Use the small reverse-direction arrow next to **[ Slot # ]** if you overshoot and need to step
+  back one slot instead of cycling all the way around.
+- Slots are per-mode, so your FM slots and your USB slots are completely separate lists — no
+  need to keep them organized around a single shared set of 9.
+- You don't need to remember to save before switching — 9GRadio does that automatically
+  whenever you cycle slots, change modes, or tune in from the EiBi tab.
+
+### EiBi shortwave schedule
+- Open the **EiBi** tab and tap any station in the list to tune to it instantly — no need to
+  know or type the frequency yourself.
+- If you just want to browse what's on **right now**, turn on the **"On air right now"** filter.
+- If you're aiming for a specific audience or language, use the **language** and **target area**
+  filters rather than scrolling the full list.
+- Turn on **"Hide likely-dead bands"** for a quick way to skip stations that almost certainly
+  won't come in given your location and the current time of day — handy when you just want to
+  browse stations that are actually worth trying right now. Allow location access when prompted
+  so this filter has something to work with; without it, this filter is left off automatically.
+- If a station on the list is unreliable (marked irregular/tentative/test by the schedule
+  itself), turn on **"Regular, dependable schedules only"** to skip those and focus on stations
+  that reliably show up as scheduled.
+- Just leave the tab open (or come back to it later) and the list will keep itself current —
+  time-based filters re-check themselves automatically, and the schedule data itself refreshes
+  in the background on its own, so you never have to remember to tap UPDATE.
 
 ### Multilateration (MLAT)
 - Open the **MLAT** dashboard from the Settings drawer tab. Enable **Client** to contribute this
