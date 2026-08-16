@@ -4,7 +4,7 @@ A complete, production-quality Android SDR application written in Kotlin, purpos
 for the **RTL-SDR V4** dongle (RTL2832U + R828D, 28.8 MHz TCXO).
 
 **Package:** `com.radiosport.ninegradio`  
-**Version:** 1.55
+**Version:** 1.58
 
 ---
 
@@ -109,6 +109,53 @@ separately.
 | **AIS** | 161.975/162.025 MHz marine VHF (both channels captured in one 300 kHz-wide tune), decoded via vendored AIS-catcher — live vessel map with MMSI, ship name, course, and speed |
 | **ACARS** | 8 preset VHF channels (129–131 MHz band), up to 4 monitored simultaneously — live message log with registration/flight/label filtering and per-channel stats |
 | **RDS** | Program Identification (PI), Program Service name, and RadioText decoded from any WFM broadcast station via vendored `redsea`, shown as a live overlay on the spectrum display |
+
+### Satellite Tracking (Sat tab)
+Live pass prediction, one-tap tuning, and continuous real-time Doppler correction for amateur
+radio satellites — turns the phone into a satellite ground station without any manual frequency
+math.
+
+- **Two independent, live-downloaded feeds**, never hardcoded: transponder frequencies/modes from
+  [SatNOGS DB](https://db.satnogs.org) (the Libre Space Foundation's open, crowd-sourced
+  transponder database), and orbital elements (TLEs) from Celestrak's amateur-satellite group —
+  the same TLE source used by the reference desktop satellite-tracking applications this feature
+  is modeled on. Both refresh automatically in the background (TLEs every 6 hours — orbital
+  elements go stale much faster than transponder assignments — transponders on a longer cycle),
+  plus a manual **UPDATE** chip to force both right away.
+- **Pass list**, tap-to-tune: every upcoming pass for every satellite with a usable downlink,
+  sorted by rise time, each row showing satellite name, AOS/LOS time, max elevation, and duration.
+  **Tap any pass** to tune straight to that satellite's downlink and start tracking — no need to
+  look up a frequency or do any math yourself.
+- **Prediction window** (⏱ chip): cycles 6H / 12H / 24H / 48H of how far ahead to predict passes.
+- **Minimum elevation** (▲ chip): cycles 0° / 10° / 20° / 30° — filters out grazing, low-elevation
+  passes that are unlikely to be workable, the same "minimum elevation for a workable pass"
+  convention used by dedicated satellite-tracking software.
+- **Above Horizon Now** toggle: narrows the list to only satellites currently above your minimum
+  elevation, for a quick "what can I work right this second" view instead of the full predicted
+  window.
+- **Live Doppler correction**: once tuned, the radio's actual RF frequency is continuously
+  recalculated (roughly once per second) from the satellite's real-time range rate relative to
+  your phone's GPS position, using the same relativistic Doppler formula real satellite-tracking
+  ground stations use — so the signal stays centered in the passband throughout the whole pass
+  without any manual re-tuning as the satellite rises, passes overhead, and sets. The main
+  frequency dial, spectrum/waterfall display, and passband highlight all update live, right along
+  with the correction, so what you see always matches what's actually tuned.
+- **Live status readout**: elevation, azimuth, range, and the current Doppler offset being applied
+  are shown for whichever satellite is actively tracked, refreshed by the same live loop that
+  re-tunes the radio.
+- **Transponder cycling** (⇅ TRANSPONDER chip, shown only when relevant): for satellites with more
+  than one usable downlink (e.g. multiple FM channels, or an SSB/CW linear transponder with more
+  than one workable spot inside it), cycle between them without leaving the tracked pass or losing
+  Doppler tracking.
+- **Own memory slot**: tuning from the Sat tab always uses a dedicated slot (separate from your
+  9 regular per-mode slots and from the EiBi tab's own slot), so tracking a satellite never
+  overwrites any of your other saved frequencies, and your regular slots are exactly as you left
+  them when you come back to them afterward.
+- **Stops itself automatically** at the end of a pass (LOS) — no need to remember to turn tracking
+  off; the radio simply stays parked at the last frequency, the same way any other memory slot
+  behaves once you're not actively driving it.
+- Uses your phone's GPS position automatically for pass prediction and Doppler correction —
+  nothing to enter manually, and moving to a new location is picked up on its own.
 
 ### Multilateration (MLAT)
 A full multilateration stack for locating transmitters that don't self-report a position —
@@ -620,6 +667,26 @@ Quick-reference settings for the smoothest experience on the RTL-SDR V4.
 - Just leave the tab open (or come back to it later) and the list will keep itself current —
   time-based filters re-check themselves automatically, and the schedule data itself refreshes
   in the background on its own, so you never have to remember to tap UPDATE.
+
+### Satellite tracking (Sat tab)
+- Tap the **Sat** chip on the Mode tab's band-preset row to open the Sat tab, then tap **UPDATE**
+  the first time you use it to download the transponder list and orbital elements — after that,
+  both refresh themselves automatically in the background.
+- Allow location access when prompted — pass prediction and Doppler correction both need your
+  phone's GPS position, and neither works without it.
+- **Tap any pass in the list** to tune and start tracking — that's it, no frequency or Doppler
+  math to do yourself; the radio's actual RF frequency is continuously corrected for you for as
+  long as the pass is above the horizon.
+- Raise the **minimum elevation** filter (▲ chip) above 0° if low, grazing passes aren't worth
+  your time — 10–20° is a reasonable starting point for most antenna setups.
+- Turn on **Above Horizon Now** when you just want to see what's workable this very moment,
+  rather than scrolling a longer predicted window.
+- If a satellite has more than one usable downlink, the **⇅ TRANSPONDER** chip appears — use it
+  to switch which one you're tracking without losing your place in the pass.
+- You don't need to do anything at the end of a pass — tracking stops itself at LOS and the radio
+  just stays where it last was, the same as any other memory slot.
+- Sat-tab tuning lives in its own memory slot, separate from your regular per-mode slots and from
+  the EiBi tab's slot, so tracking a satellite never disturbs any of your other saved frequencies.
 
 ### Multilateration (MLAT)
 - Open the **MLAT** dashboard from the Settings drawer tab. Enable **Client** to contribute this
