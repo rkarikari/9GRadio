@@ -807,18 +807,12 @@ Quick-reference settings for the smoothest experience on the RTL-SDR V4.
 GPLv3 License — see LICENSE file.  
 RTL-SDR® is a registered trademark of RTL-SDR Blog Ltd.  
 9GRadio is not affiliated with Realtek Semiconductor or RTL-SDR Blog Ltd.  
-Digital voice decoding uses vendored `mbelib-neo` (GPL-2.0-or-later) — see
-`app/src/main/cpp/mbelib-neo/LICENSES/`.  
-ADS-B decoding uses a vendored, unmodified copy of
-`readsb` (GPL-2.0-or-later) — see `app/src/main/cpp/readsb/COPYING` —
-plus a vendored copy of `zstd` (BSD/GPLv2 dual-licensed) — see
-`app/src/main/cpp/zstd/LICENSE`.  
-AIS decoding uses a vendored, unmodified copy of `AIS-catcher`
-(GPL-3.0-or-later) — see `app/src/main/cpp/ais-catcher/LICENSE`.  
-RDS decoding uses a vendored, unmodified copy of `redsea` (MIT) — see
-`app/src/main/cpp/redsea/LICENSE`.  
-ACARS decoding uses a vendored copy of `acarsdec` (GPL-2.0-or-later) — see
-`app/src/main/cpp/acarsdec/LICENSE.md`.
+Digital voice decoding uses vendored `mbelib-neo` (GPL-2.0-or-later).  
+ADS-B decoding uses a vendored, unmodified copy of `readsb` (GPL-2.0-or-later),
+plus a vendored copy of `zstd` (BSD/GPLv2 dual-licensed).  
+AIS decoding uses a vendored, unmodified copy of `AIS-catcher` (GPL-3.0-or-later).  
+RDS decoding uses a vendored, unmodified copy of `redsea` (MIT).  
+ACARS decoding uses a vendored copy of `acarsdec` (GPL-2.0-or-later).
 
 ---
 
