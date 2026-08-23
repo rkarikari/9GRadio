@@ -4,7 +4,7 @@ A complete, production-quality Android SDR application written in Kotlin, purpos
 for the **RTL-SDR V4** dongle (RTL2832U + R828D, 28.8 MHz TCXO).
 
 **Package:** `com.radiosport.ninegradio`  
-**Version:** 1.58
+**Version:** 1.60
 
 ---
 
@@ -42,6 +42,30 @@ single-line row that updates in place — showing start time, call duration, fra
 talker alias, encryption/emergency flags, and total frame count — instead of one row per frame.
 A new row only appears when a genuinely new call starts (different talker/destination, or the
 same one keying up again after the previous transmission has clearly ended).
+
+### External Decoder Support (Simultaneous Decoding)
+9GRadio can act as an RTL-SDR front end for a full desktop decoder — DSD-FME, dsd-neo,
+SDRTrunk, or anything else that connects in over TCP for raw audio — **at the same time as**
+its own built-in decoder, not instead of it. Every discriminator-audio block is fed to the
+built-in `Dig`/DMR/D-STAR/YSF decoder and streamed out to the external TCP client in the same
+pass; nothing about the local decode path is paused, gated, or slowed down by an external
+client being connected (or not).
+
+- **In Settings → External Decoder**: enable **"Serve Audio to External Decoder"**, then point a
+  desktop decoder at this device's IP and the listen port shown (default `7355`, DSD-FME's own
+  default TCP audio port) — e.g. `dsd-fme -fs -i tcp:<this device's IP>:<port>`.
+- Streams the **same raw, pre-vocoder discriminator audio** that feeds the built-in decoder, as
+  headerless 16-bit PCM (48 kHz by default) — not a re-encoded or down-sampled copy.
+- **Bind Address** defaults to `0.0.0.0` (reachable from any device on the same network or USB
+  tether); set it to `127.0.0.1` to restrict the connection to a decoder running on the same
+  device.
+- Useful for **cross-checking** the built-in decoder against a desktop reference implementation,
+  and for **protocols 9GRadio doesn't decode natively** (P25 Phase 2, EDACS, ProVoice, encrypted
+  traffic key handling, trunking control-channel following, etc.) — the desktop tool handles
+  those while 9GRadio continues doing everything it already does with the same signal.
+- If no external client is connected, the built-in decoder is completely unaffected — the stream
+  is a no-op until something connects, and never blocks or slows the local audio/decode path
+  while waiting.
 
 ### Memory Slots
 Every demodulation mode gets **9 memory slots** to save frequencies and settings into, so you
@@ -190,6 +214,39 @@ across stations, the same principle real-world ADS-B MLAT networks use.
 - **Geometry-aware accuracy estimate**: a live GDOP-based estimate of achievable fix accuracy at
   your stations' actual current spacing, alongside what it would be at an ideal reference
   spacing — makes it immediately clear whether your receivers are placed usefully far apart.
+
+### Direction Finding (RDF)
+A directional-antenna compass-ranging tab (in the same tabbed Drawer as ADS-B/AIS/ACARS/APRS)
+for estimating the position of a transmitter that has **no self-reported position at all** —
+the case MLAT's decoded-identity correlation can't help with on its own, but that a live bearing
+can. RDF and MLAT are complementary halves of the same location-fusion pipeline, not separate
+features: both feed the same solver, and the app always shows whichever currently produces the
+better fix.
+
+- **Live compass + signal-strength dial**: as you sweep, the phone/tablet's compass heading is
+  paired with the live signal reading on the currently ranged target and plotted around a
+  360° ring — a heat-mapped arc shows signal strength by direction, and a peak-direction chevron
+  plants itself once a heading has enough corroborating samples to be trusted, rather than
+  jumping to the single loudest (and possibly multipath-corrupted) reading.
+- **Requires a directional antenna, rigidly mounted to the device**: this is a hardware
+  prerequisite, not a setting — RDF works by correlating signal strength against the device's
+  live compass heading at each instant, so an omnidirectional antenna has no bearing to find, and
+  an antenna that isn't fixed in the same orientation as the device (loose mount, hand-held with
+  slipping grip) produces a confident-looking but silently wrong reading with no way for the app
+  to detect the mismatch.
+- **Target picker** covers any actively-heard station lacking a position fix — ADS-B/AIS/ACARS/
+  digital-voice targets with `no pos`, other linked MLAT-wire stations, or the currently tuned RF
+  frequency directly via a **"Track current tuner frequency"** toggle.
+- **Trilaterates with linked stations**, not just a single bearing: one receiver alone can only
+  produce a bearing ray; every additional linked MLAT peer also ranging on the same target lets
+  the app solve a real geometric fix instead, the same way additional MLAT stations improve a
+  TDOA solve.
+- **Shares the location-fusion ladder with MLAT and RSSI fingerprinting**: a genuine MLAT
+  time-difference-of-arrival solve always outranks an RDF or fingerprint-derived fix when one
+  exists; a multi-station RDF trilateration outranks a single-station bearing ray or a
+  fingerprint-only estimate. The dashboard shows the source and confidence of whichever fix is
+  currently best, and upgrades to a better one immediately, without downgrading from a good fix
+  the moment one update is briefly missed.
 
 ### DSP Engine
 - **GNU Radio Android backend** ([gnuradio-android](https://github.com/bastibl/gnuradio-android)) — when the
@@ -622,6 +679,19 @@ Quick-reference settings for the smoothest experience on the RTL-SDR V4.
   per transmission using a timing gap, so a squelch that's chattering open/closed on noise can
   fragment a single real call into several separate rows.
 
+### External Decoder (simultaneous decoding)
+- Turn on **Serve Audio to External Decoder** in Settings and leave the built-in decoder running
+  as normal — there's no need to disable anything on-device first, the two run in parallel off
+  the same audio.
+- Leave **Bind Address** at `0.0.0.0` unless the desktop decoder is on the same device or you
+  specifically want to restrict who can connect — `127.0.0.1` only if both are on one machine.
+- Point the desktop tool's TCP input at this device's IP and the configured **Listen Port**
+  (default `7355` matches DSD-FME's own default, so it often needs no port argument at all).
+- Reach for this specifically for protocols 9GRadio doesn't decode natively (P25 Phase 2, EDACS,
+  ProVoice, encrypted traffic, trunking control-channel following) or to spot-check the built-in
+  decoder's output against a desktop reference — not needed for anything 9GRadio already decodes
+  natively and correctly.
+
 ### Background recording / unattended monitoring
 - Enable the **foreground service** wake-lock to survive screen-off.
 - Cap IQ recordings with the **2 GB auto-split** to avoid single giant files.
@@ -705,6 +775,28 @@ Quick-reference settings for the smoothest experience on the RTL-SDR V4.
   geometry, and solver) at any time — it doesn't need a real transmission in the air, and with
   only 2 real stations connected it automatically fills in synthetic "virtual" stations so the
   test can still run a full solve.
+
+### Direction Finding (RDF)
+- **Mount the antenna and device together, rigidly, before starting a session** — this is a
+  hardware requirement, not a nice-to-have. A directional antenna (Yagi, log-periodic, patch,
+  etc.) is required; an omnidirectional antenna has no bearing for RDF to find at all. Sweep the
+  antenna and device together as one unit — never re-aim just the antenna, and never rotate the
+  device alone to check the screen.
+- **Pick targets that don't already have a position** (shown as `no pos` in the Aircraft/Vessel
+  table) — that's exactly what RDF exists to locate. A target that already shows a position from
+  its own ADS-B/AIS report doesn't need RDF.
+- **Link as many MLAT-wire stations as possible** — this is the single biggest accuracy lever.
+  One receiver alone can only produce a bearing ray with a large uncertainty; every additional
+  linked station also ranging on the same target tightens it toward a real trilaterated fix.
+- **Recalibrate the device compass** (figure-8 motion) if the compass ring on the dial jumps
+  erratically between samples, and keep the device away from magnets/speakers — compass drift and
+  antenna misalignment produce identical-looking symptoms, so rule out the compass first.
+- **Sweep slowly and dwell briefly on the true bearing** rather than spinning fast — the peak
+  chevron only plants once a heading has multiple corroborating samples, and a fast single spin
+  may scatter only one sample per heading across several full rotations before any heading
+  qualifies.
+- Use **"Track current tuner frequency"** for RF-only targets instead of typing a frequency
+  manually, so RDF always ranges on exactly what the tuner is currently receiving.
 
 ---
 
