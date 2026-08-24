@@ -1,7 +1,8 @@
 # 9GRadio — Full-Featured Android SDR App
 
 A complete, production-quality Android SDR application written in Kotlin, purpose-built  
-for the **RTL-SDR V4** dongle (RTL2832U + R828D, 28.8 MHz TCXO).
+for the **RTL-SDR V4** dongle family (RTL2832U + R828D or R828S, 28.8 MHz TCXO) — including  
+both the original **V4** (R828D) and the **V4L / "V4 Lite"** (R828S).
 
 **Package:** `com.radiosport.ninegradio`  
 **Version:** 1.60
@@ -17,8 +18,9 @@ for the **RTL-SDR V4** dongle (RTL2832U + R828D, 28.8 MHz TCXO).
 ### RF / Hardware Control
 | Feature | Details |
 |---|---|
-| **Frequency range** | 500 kHz – 1766 MHz (full V4 tuner range) |
-| **HF direct sampling** | I-branch or Q-branch (Q recommended on V4) |
+| **Frequency range** | 500 kHz – 1766 MHz (full V4/V4L tuner range) |
+| **Hardware support** | RTL-SDR Blog V4 (R828D) and V4L "Lite" (R828S) — auto-identified from EEPROM, no manual model selection needed |
+| **HF direct sampling** | I-branch or Q-branch (Q recommended on V4/V4L, though HF upconversion means you'll rarely need it) |
 | **Auto HF switching** | Enables Q-branch automatically below 28.8 MHz |
 | **Bias tee** | One-tap ~4.5 V on antenna port for powered LNAs/filters |
 | **PPM correction** | ±50 ppm software compensation (TCXO ≈ 0) |
@@ -409,7 +411,7 @@ display or RF settings from scratch.
 │  ┌───────────────┐   ┌───────────────────────────────┐  │
 │  │ RtlSdrDevice  │   │ DspEngine                     │  │
 │  │  USB driver   │──▶│  FFT · Demodulator · Squelch  │  │
-│  │  R828D tuner  │   │  Resampler · AudioEngine      │  │
+│  │  R828D/R828S  │   │  Resampler · AudioEngine      │  │
 │  │  Bias-tee     │   │  IqRecorder · ProtocolDecoders│  │
 │  │  Direct-samp  │   │  DigitalVoiceDecoder (mbelib) │  │
 │  │               │   │  ReadsbProcess (ADS-B)        │  │
@@ -440,7 +442,7 @@ display or RF settings from scratch.
 - Android SDK 34, NDK 25+
 - Gradle 8.2+
 - Physical Android device with **USB Host** support (API 26+)
-- RTL-SDR V4 dongle + USB-C OTG adapter
+- RTL-SDR V4 or V4L dongle + USB-C OTG adapter
 
 ### GNU Radio VOLK kernels
 
@@ -520,9 +522,9 @@ cd 9GRadio
 ```
 
 ### First Run
-1. Plug the RTL-SDR V4 dongle into your Android device via OTG adapter
+1. Plug the RTL-SDR V4 or V4L dongle into your Android device via OTG adapter
 2. Grant USB permission when prompted (tap **OK**)
-3. The app auto-detects the dongle and starts streaming
+3. The app auto-detects the dongle model (V4/V4L) and tuner, and starts streaming
 4. Default: 100 MHz, NFM, 2.048 MS/s, AGC on
 
 ---
@@ -612,7 +614,7 @@ cd 9GRadio
 │       │   │   ├── SpectrumView.kt         # FFT spectrum display + Auto dB Range
 │       │   │   └── WaterfallView.kt        # Scrolling waterfall
 │       │   └── usb/
-│       │       ├── RtlSdrDevice.kt         # USB driver + R828D tuner
+│       │       ├── RtlSdrDevice.kt         # USB driver + R828D (V4) / R828S (V4L) tuner
 │       │       └── RtlSdrService.kt        # Foreground service
 │       └── res/
 │           ├── layout/                     # All XML layouts
@@ -628,22 +630,58 @@ cd 9GRadio
 
 ---
 
-## RTL-SDR V4 Hardware Notes
+## RTL-SDR V4 / V4L Hardware Notes
+
+### Which dongle is this?
+9GRadio identifies the exact model automatically from the dongle's EEPROM manufacturer/product
+strings (`RTLSDRBlog` / `Blog V4` for V4, `RTLSDRBlog` / `Blog V4L` for V4L) the moment it's
+plugged in — no setting to choose between them. The detected model is shown in the RTL-SDR Test
+Activity and the Debug Panel. A dongle whose EEPROM wasn't programmed with one of these exact
+strings (unbranded clones, a V4/V4L with a hand-edited EEPROM, etc.) falls back to generic
+R820T/R820T2 handling rather than guessing.
+
+### V4 vs. V4L: what's different
+The V4L ("Lite") uses the Rafael Micro **R828S** tuner in place of the original V4's **R828D**,
+because R828D production stock has been exhausted. The R828S enumerates on I2C as a standard
+R820T-family part rather than at R828D's dedicated address, but 9GRadio's driver still applies
+the correct V4L-specific front-end behavior on top of that generic R820T handling, gated on the
+EEPROM identification above — this isn't generic/best-effort R820T support, it's a full,
+register-level port of the RTL-SDR Blog V4L driver changes.
+
+| | V4 (R828D) | V4L (R828S) |
+|---|---|---|
+| **HF upconverter** | Yes — auto-applied ≤ 28.8 MHz | Yes — same upconverter, same behavior |
+| **RF input paths** | 3 (HF / VHF / UHF), reflecting the R828D's triplexed front end | 2 (HF / UHF only — no separate VHF path), reflecting the R828S's diplexed front end |
+| **Notch filter** | Yes, on reg 0x17 | None — the R828S has no `open_d` pin, so this register is never touched for V4L |
+| **Tracking filter bypass on HF** | Yes | Yes — identical registers/values to V4 |
+| **GPIO-5 upconverter switch** | Yes | Yes |
 
 ### Direct HF Sampling
-The V4 uses the R828D which supports bypassing the tuner entirely below ~28.8 MHz.
-9GRadio auto-enables **Q-branch** (mode 2) for frequencies below 28.8 MHz — this is  
-the correct choice for the V4 hardware revision. I-branch (mode 1) is also available  
-for older hardware or experimentation.
+Both the V4 (R828D) and V4L (R828S) support bypassing the tuner entirely below ~28.8 MHz via
+the RTL2832U's direct sampling mode. 9GRadio auto-enables **Q-branch** (mode 2) for frequencies
+below 28.8 MHz on either dongle. In normal use you won't need this at all on V4/V4L, though —
+both already have a built-in HF upconverter (see below), so tuning to an HF frequency works
+directly without switching branches manually. I-branch (mode 1) is also available for older
+hardware or experimentation.
+
+### HF Upconversion (V4 and V4L)
+Rather than relying on direct sampling for HF, both V4 and V4L include a hardware upconverter:
+tuning to a frequency at or below 28.8 MHz is automatically shifted up by 28.8 MHz before the
+R82xx tuner sees it, then shifted back down in software — you just tune to the real HF frequency
+and it works, with no manual offset or branch-switching needed. 9GRadio also bypasses the R82xx's
+on-chip tracking filter while in this HF-upconverted state (on both V4 and V4L) — the tracking
+filter would otherwise be centered on the *upconverted* frequency rather than the real one,
+adding pointless insertion loss instead of any useful selectivity, so removing it improves HF
+sensitivity slightly with no downside.
 
 ### Bias Tee
-The V4 bias tee outputs ~4.5 V on the SMA antenna connector, controlled via GPIO bit 3  
-of the RTL2832U. Use it to power external LNAs, filtered pre-amps, or the official RTL-SDR  
-Blog LNA. **Do not enable with passive antennas or direct coax connections.**
+Both the V4 and V4L output ~4.5 V on the SMA antenna connector, controlled via GPIO bit 3 of the
+RTL2832U. Use it to power external LNAs, filtered pre-amps, or the official RTL-SDR Blog LNA.
+**Do not enable with passive antennas or direct coax connections.**
 
 ### TCXO
-The V4 includes a 28.8 MHz TCXO with ±1 ppm accuracy. Set PPM correction to **0** unless  
-you have a reference to calibrate against. The TCXO eliminates the frequency drift seen  
+Both the V4 and V4L include a 28.8 MHz TCXO with ±1 ppm accuracy. Set PPM correction to **0**
+unless you have a reference to calibrate against. The TCXO eliminates the frequency drift seen
 on older RTL-SDR designs.
 
 ### Gain
@@ -654,12 +692,15 @@ index 20–26 (~30–45 dB). For strong local FM, reduce to 0–5 to avoid ADC s
 
 ## User Guide: Optimal Settings for High Performance
 
-Quick-reference settings for the smoothest experience on the RTL-SDR V4.
+Quick-reference settings for the smoothest experience on the RTL-SDR V4 or V4L. Everything
+below applies equally to both — where the two dongles genuinely differ (front-end input
+switching, notch filter), see **RTL-SDR V4 / V4L Hardware Notes** above; it never requires a
+different setting choice here.
 
 | Setting | Recommended | Why |
 |---|---|---|
 | **Sample rate** | 2.048 or 2.4 MS/s for general monitoring; drop to 912 kS/s–1.024 MS/s on older/slower devices | Balances spectrum width against CPU load; VOLK/NEON handles these rates smoothly on most phones |
-| **PPM correction** | 0 | The V4's TCXO is already ±1 ppm accurate — added correction only helps if you've calibrated against a known reference |
+| **PPM correction** | 0 | The V4/V4L's TCXO is already ±1 ppm accurate — added correction only helps if you've calibrated against a known reference |
 | **Gain** | AGC for general use; manual 20–26 (~30–45 dB) for weak-signal HF/satellite work; 0–5 for strong local FM | Prevents ADC saturation on strong signals while keeping enough gain for weak ones |
 | **FFT size** | 2048 | Sweet spot between frequency resolution and render cost; raise to 4096+ only for detailed narrowband analysis |
 | **Frame averaging** | ×8 | Cuts displayed noise floor by up to ~15 dB with negligible added latency |
