@@ -5,7 +5,7 @@ for the **RTL-SDR V4** dongle family (RTL2832U + R828D or R828S, 28.8 MHz TCXO) 
 both the original **V4** (R828D) and the **V4L / "V4 Lite"** (R828S).
 
 **Package:** `com.radiosport.ninegradio`  
-**Version:** 1.60
+**Version:** 1.62
 
 ---
 
@@ -34,9 +34,9 @@ both the original **V4** (R828D) and the **V4L / "V4 Lite"** (R828S).
 `APRS`
 
 **Digital voice** (12.5 kHz NFM channel, shared discriminator pipeline):  
-`DMR` · `D-STAR` · `YSF` · `dPMR` · `NXDN` — all fully auto-detected and voice-decoded via `Dig`
-(auto-detect — tries all known sync words and reports back whichever protocol locks); `DMR`,
-`D-STAR`, and `YSF` additionally have their own dedicated tabs
+`DMR` · `D-STAR` · `YSF` · `dPMR` · `NXDN` · `P25 Phase 1` — all fully auto-detected and
+voice-decoded via `Dig` (auto-detect — tries all known sync words and reports back whichever
+protocol locks); `DMR`, `D-STAR`, and `YSF` additionally have their own dedicated tabs
 
 Each digital voice tab shows a **Recent Calls** list rather than a raw frame log: consecutive
 frames from the same transmission (same source/destination/talkgroup) are grouped into a single,
@@ -517,7 +517,7 @@ cd 9GRadio
 ./gradlew installDebug
 
 # Build release APK (requires signing config)
-# Output: app/build/outputs/apk/release/9GRadio_v1.48_release.apk
+# Output: app/build/outputs/apk/release/9GRadio_v1.61_release.apk
 ./gradlew assembleRelease
 ```
 
