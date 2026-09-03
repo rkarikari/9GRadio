@@ -27,36 +27,7 @@ both the original **V4** (R828D) and the **V4L / "V4 Lite"** (R828S).
 | **Gain control** | 29-step manual gain table + hardware AGC |
 | **Sample rates** | 27 presets from 240 kS/s to 2.5 MS/s (low-rate narrow-mode band + main full-spectrum band) |
 | **USB hot-plug** | Auto-detect and auto-launch on dongle insert |
-| **rtl_tcp client** | Connect to a remote `rtl_tcp` / `rtl_tcp_andro` server over the network instead of a local USB dongle |
-
-### rtl_tcp Server Source
-9GRadio can pull its IQ stream from any `rtl_tcp`-compatible server over the network — a
-Raspberry Pi or other Linux box running stock `rtl_tcp`, another Android device running
-`rtl_tcp_andro`, or 9GRadio's own on-device driver app reached over loopback — instead of a
-locally attached USB dongle. This uses the standard `rtl_tcp` wire protocol (the `RTL0` magic
-handshake followed by 5-byte tuning/gain commands and a raw unsigned-8 interleaved IQ stream),
-so it works with any server implementing that protocol, not just RTL-SDR Blog's own tools.
-
-**Connecting:**
-1. Open **Device Info** (tap the device/antenna icon) and set the **Source** dropdown to
-   **External RTL-SDR Server**.
-2. Either tap **🔍 Scan** to find servers automatically on the local network — this runs mDNS
-   discovery, a UDP broadcast probe, and a TCP handshake check in parallel, and lists any
-   confirmed `rtl_tcp` servers found — or enter the **host and port** manually if you already
-   know them. The rtl_tcp default port is `1234`; `1235`, `2000`, and `4711` are also probed
-   automatically during a scan since some wrapper scripts/Docker images use them.
-3. Tap **🌐 Connect**.
-
-**Testing a connection (before or after connecting):**
-- Tap **🧪 Test** to open a short-lived probe connection to the entered host:port, measure its
-  actual sustained throughput over ~4 seconds, and tear the probe down again — this never
-  touches the live decode chain or changes the server's sample rate, so it's safe to run before
-  committing to a connection.
-- The result is shown against the throughput actually needed for the sample rate currently
-  selected, with a verdict of **✅ Comfortable**, **⚠️ Marginal**, or **❌ Insufficient** — useful
-  for sanity-checking a WiFi link or a remote server's uplink before relying on it.
-- Once actually connected via **🌐 Connect**, the same throughput readout switches to a live,
-  continuously-updating measurement instead of a one-off test.
+| **rtl_tcp client** | Connect to a remote `rtl_tcp` / `rtl_tcp_andro` server over the network instead of a local USB dongle (see [rtl_tcp Server Source](#rtl_tcp-server-source) below) |
 
 ### Demodulation Modes
 `AM` · `FM` · `NFM` · `WFM` · `WFM Stereo` · `USB` · `LSB` · `CW` · `CWR` · `DSB` · `RAW IQ`  
@@ -440,6 +411,35 @@ display or RF settings from scratch.
 - Wake-lock option for unattended recording
 - Persistent notification with quick Disconnect action
 - Survives activity lifecycle changes via service binding
+
+### rtl_tcp Server Source
+9GRadio can pull its IQ stream from any `rtl_tcp`-compatible server over the network — a
+Raspberry Pi or other Linux box running stock `rtl_tcp`, another Android device running
+`rtl_tcp_andro`, or 9GRadio's own on-device driver app reached over loopback — instead of a
+locally attached USB dongle. This uses the standard `rtl_tcp` wire protocol (the `RTL0` magic
+handshake followed by 5-byte tuning/gain commands and a raw unsigned-8 interleaved IQ stream),
+so it works with any server implementing that protocol, not just RTL-SDR Blog's own tools.
+
+**Connecting:**
+1. Open **Device Info** (tap the device/antenna icon) and set the **Source** dropdown to
+   **External RTL-SDR Server**.
+2. Either tap **🔍 Scan** to find servers automatically on the local network — this runs mDNS
+   discovery, a UDP broadcast probe, and a TCP handshake check in parallel, and lists any
+   confirmed `rtl_tcp` servers found — or enter the **host and port** manually if you already
+   know them. The rtl_tcp default port is `1234`; `1235`, `2000`, and `4711` are also probed
+   automatically during a scan since some wrapper scripts/Docker images use them.
+3. Tap **🌐 Connect**.
+
+**Testing a connection (before or after connecting):**
+- Tap **🧪 Test** to open a short-lived probe connection to the entered host:port, measure its
+  actual sustained throughput over ~4 seconds, and tear the probe down again — this never
+  touches the live decode chain or changes the server's sample rate, so it's safe to run before
+  committing to a connection.
+- The result is shown against the throughput actually needed for the sample rate currently
+  selected, with a verdict of **✅ Comfortable**, **⚠️ Marginal**, or **❌ Insufficient** — useful
+  for sanity-checking a WiFi link or a remote server's uplink before relying on it.
+- Once actually connected via **🌐 Connect**, the same throughput readout switches to a live,
+  continuously-updating measurement instead of a one-off test.
 
 ---
 
