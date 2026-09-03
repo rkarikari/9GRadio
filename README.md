@@ -5,7 +5,7 @@ for the **RTL-SDR V4** dongle family (RTL2832U + R828D or R828S, 28.8 MHz TCXO) 
 both the original **V4** (R828D) and the **V4L / "V4 Lite"** (R828S).
 
 **Package:** `com.radiosport.ninegradio`  
-**Version:** 1.62
+**Version:** 1.66
 
 ---
 
@@ -28,6 +28,35 @@ both the original **V4** (R828D) and the **V4L / "V4 Lite"** (R828S).
 | **Sample rates** | 27 presets from 240 kS/s to 2.5 MS/s (low-rate narrow-mode band + main full-spectrum band) |
 | **USB hot-plug** | Auto-detect and auto-launch on dongle insert |
 | **rtl_tcp client** | Connect to a remote `rtl_tcp` / `rtl_tcp_andro` server over the network instead of a local USB dongle |
+
+### rtl_tcp Server Source
+9GRadio can pull its IQ stream from any `rtl_tcp`-compatible server over the network — a
+Raspberry Pi or other Linux box running stock `rtl_tcp`, another Android device running
+`rtl_tcp_andro`, or 9GRadio's own on-device driver app reached over loopback — instead of a
+locally attached USB dongle. This uses the standard `rtl_tcp` wire protocol (the `RTL0` magic
+handshake followed by 5-byte tuning/gain commands and a raw unsigned-8 interleaved IQ stream),
+so it works with any server implementing that protocol, not just RTL-SDR Blog's own tools.
+
+**Connecting:**
+1. Open **Device Info** (tap the device/antenna icon) and set the **Source** dropdown to
+   **External RTL-SDR Server**.
+2. Either tap **🔍 Scan** to find servers automatically on the local network — this runs mDNS
+   discovery, a UDP broadcast probe, and a TCP handshake check in parallel, and lists any
+   confirmed `rtl_tcp` servers found — or enter the **host and port** manually if you already
+   know them. The rtl_tcp default port is `1234`; `1235`, `2000`, and `4711` are also probed
+   automatically during a scan since some wrapper scripts/Docker images use them.
+3. Tap **🌐 Connect**.
+
+**Testing a connection (before or after connecting):**
+- Tap **🧪 Test** to open a short-lived probe connection to the entered host:port, measure its
+  actual sustained throughput over ~4 seconds, and tear the probe down again — this never
+  touches the live decode chain or changes the server's sample rate, so it's safe to run before
+  committing to a connection.
+- The result is shown against the throughput actually needed for the sample rate currently
+  selected, with a verdict of **✅ Comfortable**, **⚠️ Marginal**, or **❌ Insufficient** — useful
+  for sanity-checking a WiFi link or a remote server's uplink before relying on it.
+- Once actually connected via **🌐 Connect**, the same throughput readout switches to a live,
+  continuously-updating measurement instead of a one-off test.
 
 ### Demodulation Modes
 `AM` · `FM` · `NFM` · `WFM` · `WFM Stereo` · `USB` · `LSB` · `CW` · `CWR` · `DSB` · `RAW IQ`  
@@ -216,6 +245,32 @@ across stations, the same principle real-world ADS-B MLAT networks use.
 - **Geometry-aware accuracy estimate**: a live GDOP-based estimate of achievable fix accuracy at
   your stations' actual current spacing, alongside what it would be at an ideal reference
   spacing — makes it immediately clear whether your receivers are placed usefully far apart.
+
+### Channel Monitor
+Simultaneous, wideband monitoring of an entire channelized band — PMR446, CB (27 MHz),
+FRS/GMRS, MURS, or any other channel-grid band preset — instead of sequentially retuning
+through each channel one at a time (scan → listen → retune → listen…).
+
+- Open the **Tune tab** and tap one of the **📻 <band>** chips (alongside the regular
+  band-preset chips) to open the Monitor tab and start monitoring.
+- Channels are grouped into the fewest possible *clusters* that fit inside one FFT capture —
+  most curated bands (PMR446, CB, MURS, FRS/GMRS) fit in a single cluster — so the hardware is
+  tuned **once** for the whole band instead of once per channel, and every channel in the
+  currently-watched cluster is read out of the same live FFT capture simultaneously.
+- A channel only flags **active** after several consecutive captures clear an adaptive,
+  noise-floor-derived threshold by a firm, explicit margin (shown live as
+  *"Adaptive threshold: noise floor + margin"*), so brief noise spikes and birdies don't cause
+  false triggers.
+- Once confirmed active, the receiver retunes precisely onto that channel for clean on-frequency
+  audio and dwells there — through a short hang timer after it goes quiet — before returning to
+  cluster-wide monitoring. The spectrum/waterfall display stays live throughout, so every retune
+  shows up as real activity rather than being hidden behind a dialog.
+- The **channel table** shows each channel's last-heard time, peak signal level, and total
+  confirmed-activation count, and lets you **lock out** a persistently noisy or birdie-prone
+  channel (tap its lock glyph) so it's never flagged active.
+- The **Recent Activity** log lists completed calls (time, channel, peak level, duration) once
+  they've actually ended — tap any row there, or in the channel table, to tune straight to that
+  frequency.
 
 ### Direction Finding (RDF)
 A directional-antenna compass-ranging tab (in the same tabbed Drawer as ADS-B/AIS/ACARS/APRS)
@@ -517,7 +572,7 @@ cd 9GRadio
 ./gradlew installDebug
 
 # Build release APK (requires signing config)
-# Output: app/build/outputs/apk/release/9GRadio_v1.61_release.apk
+# Output: app/build/outputs/apk/release/9GRadio_v1.66_release.apk
 ./gradlew assembleRelease
 ```
 
@@ -798,6 +853,20 @@ different setting choice here.
   just stays where it last was, the same as any other memory slot.
 - Sat-tab tuning lives in its own memory slot, separate from your regular per-mode slots and from
   the EiBi tab's slot, so tracking a satellite never disturbs any of your other saved frequencies.
+
+### Channel Monitor
+- Tap a **📻 <band>** chip on the Tune tab (PMR446, CB, FRS/GMRS, MURS, or any other channelized
+  band preset) to watch every channel in that band at once instead of scanning through them
+  one at a time.
+- **Lock out** any channel that keeps false-triggering (a birdie, a noisy repeater, etc.) via its
+  lock glyph in the channel table — locked-out channels are skipped by activity detection but
+  stay visible so you can still tap to tune them manually.
+- Watch the **"Adaptive threshold"** readout if a band seems too quiet or too chatty — it's your
+  noise floor plus a fixed margin, so a consistently high threshold usually means a genuinely
+  noisy RF environment (try a better antenna/location) rather than a setting to change.
+- Tap any row in the channel table or the **Recent Activity** log to jump straight to that
+  frequency and keep listening manually, without leaving the Monitor tab running in the
+  background.
 
 ### Multilateration (MLAT)
 - Open the **MLAT** dashboard from the Settings drawer tab. Enable **Client** to contribute this
