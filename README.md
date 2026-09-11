@@ -5,11 +5,37 @@ for the **RTL-SDR V4** dongle family (RTL2832U + R828D or R828S, 28.8 MHz TCXO) 
 both the original **V4** (R828D) and the **V4L / "V4 Lite"** (R828S).
 
 **Package:** `com.radiosport.ninegradio`  
-**Version:** 1.68
+**Version:** 1.69
 
 ---
 
 ![9GRadio](https://github.com/rkarikari/9GRadio/blob/master/images/9GRadio.gif) | ![9GRadio](https://github.com/rkarikari/9GRadio/blob/master/images/9GRadio2.gif)
+
+---
+
+## Input & Output Modes
+
+At its core, 9GRadio pulls in an IQ signal from one of three **input** sources, then does one or
+more of four things with it as **output** — these can be mixed and combined (e.g. listen on the
+internal decoder, feed an external decoder, and record to an IQ file, all from the same live USB
+source, at the same time).
+
+**Input — where the IQ signal comes from** (set via the **Source** dropdown in **Device Info**):
+
+| # | Mode | Details |
+|---|---|---|
+| 1 | **USB** | A local RTL-SDR V4/V4L dongle connected directly via a USB OTG cable |
+| 2 | **TCP** | A network IQ stream speaking the `rtl_tcp` wire protocol — either an on-device **Android RTL driver app** (reached over loopback) or a remote **`rtl_tcp` server** elsewhere on the network (see [rtl_tcp Server Source](#rtl_tcp-server-source)) |
+| 3 | **File** | Playback of a previously recorded IQ file (`.iq`, `.iq.gz`, `.cf32`) through the exact same DSP pipeline as a live source — pick, play, pause/seek, and loop it like a recording |
+
+**Output — what happens to the signal once it's tuned/demodulated:**
+
+| # | Mode | Details |
+|---|---|---|
+| 1 | **Internal decoder** | 9GRadio's own built-in demodulation (AM/FM/NFM/WFM/SSB/CW/RAW IQ/APRS) and digital voice decoding (DMR, D-STAR, YSF, dPMR, NXDN, P25 Phase 1) |
+| 2 | **External decoder** | The same pre-vocoder discriminator audio streamed live over TCP to a desktop tool (DSD-FME, dsd-neo, SDRTrunk, etc.) — runs *simultaneously* with the internal decoder, not instead of it (see [External Decoder Support](#external-decoder-support-simultaneous-decoding)) |
+| 3 | **IQ file** | Raw IQ samples recorded straight to disk — `.iq` (uint8), `.iq.gz` (gzip-compressed), or `.cf32` (float32) — for offline analysis or replay via the File input above |
+| 4 | **WAV file** | Demodulated audio recorded to disk as 16-bit PCM WAV (see [Recording](#recording)) |
 
 ---
 
@@ -415,7 +441,7 @@ display or RF settings from scratch.
 ### rtl_tcp Server Source
 9GRadio can pull its IQ stream from any `rtl_tcp`-compatible server over the network — a
 Raspberry Pi or other Linux box running stock `rtl_tcp`, another Android device running
-`rtl_tcp_andro`, or 9GRadio's own on-device driver app reached over loopback — instead of a
+`rtl_tcp_andro`, or an on-device driver app reached over loopback — instead of a
 locally attached USB dongle. This uses the standard `rtl_tcp` wire protocol (the `RTL0` magic
 handshake followed by 5-byte tuning/gain commands and a raw unsigned-8 interleaved IQ stream),
 so it works with any server implementing that protocol, not just RTL-SDR Blog's own tools.
@@ -440,6 +466,49 @@ so it works with any server implementing that protocol, not just RTL-SDR Blog's 
   for sanity-checking a WiFi link or a remote server's uplink before relying on it.
 - Once actually connected via **🌐 Connect**, the same throughput readout switches to a live,
   continuously-updating measurement instead of a one-off test.
+
+### Rig Control (Hamlib `rigctld`-compatible server)
+Turns 9GRadio into a network-controllable receiver by running a small server that speaks the
+same wire protocol as Hamlib's `rigctld` — the de-facto standard most amateur radio and SDR
+software already uses to talk to a "rig." Any Hamlib-compatible program on a PC on the same
+network (WSJT-X, JTDX, fldigi, Gqrx's remote-control panel, SDR++'s rig-control module, or the
+plain `rigctl` command-line tool) can read and remotely set 9GRadio's frequency and demodulation
+mode.
+
+- Since 9GRadio is built around a receive-only RTL-SDR dongle rather than a transceiver, Rig
+  Control deliberately implements only the receive-relevant subset of the protocol —
+  transmitter-only commands (PTT, split, TX power) are recognised so clients don't hang or
+  error out, but are answered with Hamlib's own "not supported" result code.
+- **In Settings → Rig Control**: switch **Server** on, leave **Listen port** at its default
+  `4532` (rigctld's own long-standing default) unless it's already in use, optionally set the
+  **Jog dial step size (Hz)** for an external rotary encoder/jog-dial input, then tap **Apply**.
+  The status indicator switches to **● RUNNING** and a green **CONNECT →** row shows this
+  device's IP address and port — tap it (or its copy icon) to copy `address:port` straight to
+  the clipboard for pasting into a client.
+- A live **Connected clients** count (updated once per second) confirms when a PC client has
+  actually connected.
+- Supports both traditional single-letter Hamlib commands and their long-form `\command`
+  aliases (`f`/`\get_freq`, `F <hz>`/`\set_freq`, `m`/`\get_mode`, `M <mode> <pb>`/`\set_mode`,
+  `\dump_state`, `\chk_vfo`, plus `q`/`Q` to close the connection), matching upstream `rigctld`'s
+  behavior for the subset it implements.
+- 9GRadio's own demodulation modes are translated to the closest Hamlib mode token (e.g.
+  AM→AM, FM/NFM→FM, WFM/WFM Stereo→WFM, USB→USB, LSB→LSB, CW→CW, CWR→CWR, DSB→AM, and digital
+  voice modes → FM, reporting the underlying FM discriminator since Hamlib has no matching
+  token for them).
+- **Multiple simultaneous clients** are supported — e.g. a logging program and WSJT-X both
+  watching the same VFO — and every connected client sees the same, single, authoritative
+  frequency kept in sync in both directions.
+- An external rotary controller (jog dial via USB-serial or HID) uses the exact same underlying
+  frequency-setting call as a Rig Control client's `F`/`set_freq` command, so external jog input
+  and a network client always agree on one authoritative VFO.
+- Rig Control hands over frequency/mode only — it doesn't carry audio. For a fully wireless
+  setup, phone/tablet receive audio can be routed to a PC over Bluetooth (A2DP) into a virtual
+  audio cable, which a program like WSJT-X or fldigi can then select as its microphone input;
+  this runs entirely independently of the Rig Control TCP connection.
+- **No pairing, login, or encryption** — like upstream `rigctld` itself, Rig Control is a plain
+  unauthenticated TCP service. Only enable it on trusted networks, and turn **Server** off when
+  not actively using it; because 9GRadio is receive-only, the worst case of an unwanted
+  connection is someone else retuning your receiver.
 
 ---
 
@@ -648,6 +717,9 @@ cd 9GRadio
 │       │   │   ├── BeastReader.kt          # Reads readsb's Beast output for ADS-B timestamps
 │       │   │   ├── UpstreamMlatClient.kt   # Contributes ADS-B to a real public MLAT network
 │       │   │   └── GnssTimeSource.kt       # GPS-referenced timing
+│       │   ├── remote/
+│       │   │   ├── RigControlManager.kt    # Wires RigControlServer to freq/mode state
+│       │   │   └── RigControlServer.kt     # Hamlib rigctld-compatible TCP server
 │       │   ├── recording/
 │       │   │   └── IqRecorder.kt           # IQ to disk (raw/gz/f32)
 │       │   ├── scanner/
@@ -666,6 +738,7 @@ cd 9GRadio
 │       │   │   ├── MainViewModel.kt        # State + commands + per-mode settings
 │       │   │   ├── OtherActivities.kt      # Settings, Recording, Spectrum, ACARS activities
 │       │   │   ├── MemoryActivity.kt       # Memory channels browser
+│       │   │   ├── RigControlSettingsActivity.kt # Rig Control server settings/status card
 │       │   │   ├── RtlSdrTestActivity.kt    # USB/tuner connectivity test screen
 │       │   │   ├── ScannerActivity.kt      # Scanner UI
 │       │   │   ├── SMeterView.kt           # Analog S-meter widget
@@ -790,6 +863,21 @@ different setting choice here.
   ProVoice, encrypted traffic, trunking control-channel following) or to spot-check the built-in
   decoder's output against a desktop reference — not needed for anything 9GRadio already decodes
   natively and correctly.
+
+### Rig Control
+- Turn on **Server** in Settings → Rig Control and tap **Apply** — leave **Listen port** at the
+  default `4532` unless it conflicts with something else on your network.
+- Point any Hamlib-aware client (WSJT-X, JTDX, fldigi, Gqrx, SDR++, or plain `rigctl`) at the
+  IP:port shown in the green **CONNECT →** row, using a **"GQRX"** rig type — that's the option
+  confirmed to work with 9GRadio (other Hamlib-style entries such as "NET rigctl / rigctld" or
+  backend #2 may appear in some clients but have not been verified).
+- Leave **PTT Method** off in clients like WSJT-X — 9GRadio is receive-only, so use it purely
+  for remote frequency/mode control and decoding.
+- If you need your phone's receive audio on the same PC (e.g. for WSJT-X to decode), pair over
+  Bluetooth with a Windows A2DP-sink helper and a virtual audio cable — this runs independently
+  of the Rig Control TCP connection, so both can be active at once.
+- Turn **Server** off when you're done — Rig Control, like `rigctld` itself, has no
+  authentication, so only run it on networks you trust.
 
 ### Background recording / unattended monitoring
 - Enable the **foreground service** wake-lock to survive screen-off.
