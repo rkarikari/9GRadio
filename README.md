@@ -24,7 +24,7 @@ source, at the same time).
 
 | # | Mode | Details |
 |---|---|---|
-| 1 | **USB** | A local RTL-SDR V4/V4L dongle connected directly via a USB OTG cable |
+| 1 | **USB** | A local RTL-SDR V4/V4L or generic RTL-compatible dongle connected directly via a USB OTG cable |
 | 2 | **TCP** | A network IQ stream speaking the `rtl_tcp` wire protocol — either an on-device **Android RTL driver app** (reached over loopback) or a remote **`rtl_tcp` server** elsewhere on the network (see [rtl_tcp Server Source](#rtl_tcp-server-source)) |
 | 3 | **File** | Playback of a previously recorded IQ file (`.iq`, `.iq.gz`, `.cf32`) through the exact same DSP pipeline as a live source — pick, play, pause/seek, and loop it like a recording |
 
