@@ -5,7 +5,7 @@ for the **RTL-SDR V4** dongle family (RTL2832U + R828D or R828S, 28.8 MHz TCXO) 
 both the original **V4** (R828D) and the **V4L / "V4 Lite"** (R828S).
 
 **Package:** `com.radiosport.ninegradio`  
-**Version:** 1.69
+**Version:** 1.72
 
 ---
 
@@ -57,7 +57,7 @@ source, at the same time).
 
 ### Demodulation Modes
 `AM` · `FM` · `NFM` · `WFM` · `WFM Stereo` · `USB` · `LSB` · `CW` · `CWR` · `DSB` · `RAW IQ`  
-`APRS`
+`APRS` · `SSTV` · `LRPT`
 
 **Digital voice** (12.5 kHz NFM channel, shared discriminator pipeline):  
 `DMR` · `D-STAR` · `YSF` · `dPMR` · `NXDN` · `P25 Phase 1` — all fully auto-detected and
@@ -162,6 +162,25 @@ separately.
 | **ACARS** | 8 preset VHF channels (129–131 MHz band), up to 4 monitored simultaneously — live message log with registration/flight/label filtering and per-channel stats |
 | **RDS** | Program Identification (PI), Program Service name, and RadioText decoded from any WFM broadcast station via vendored `redsea`, shown as a live overlay on the spectrum display |
 
+### Image Decode Modes — SSTV & LRPT
+Two dedicated demodulation modes, selectable directly from the **Mode** tab's Analogue (`SSTV`)
+and Digital (`LRPT`) protocol chips, each opening its own hidden-until-active Drawer tab with a
+live-updating image view plus **Save**/**Share** buttons for the decoded picture.
+
+| Mode | Details |
+|---|---|
+| **SSTV** | Slow-Scan TV image decode (Robot 36, PD120, Scottie, Martin, etc. — auto-detected from the sync pulse) off ordinary FM-discriminator audio, same signal path as NFM. Free-tune: works at **any** frequency in the receiver's range, not just the ISS SSTV downlink — usable for the ISS, HF amateur SSTV nets (14.230/7.171 MHz USB, etc.), or any other SSTV source |
+| **LRPT** | Meteor-M2 weather-satellite LRPT image decode (72 kBd QPSK, Viterbi + Reed-Solomon FEC) tapping raw wideband IQ directly, independent of the narrow demod chain. Free-tune: works at **any** frequency, not just the 137–138 MHz weather-satellite band — useful for other LRPT-alike QPSK downlinks, recorded/off-band IQ captures, or manual band-scanning |
+
+Both modes get the full per-mode treatment every other demodulator gets: their own frequency,
+gain, bandwidth, and every other RF/Display setting are saved and restored independently across
+9 memory slots, exactly like AM/NFM/USB/etc. (see [Memory Slots](#memory-slots)).
+
+The same two decoders are *also* auto-triggered by the [Sat tab](#satellite-tracking-sat-tab)
+whenever it tracks a pass landing in the LRPT band or on the ISS SSTV frequency — selecting the
+`SSTV`/`LRPT` chip from the Mode tab is an independent, always-available path to the identical
+decoder and tab, not a replacement for that satellite-triggered convenience.
+
 ### Satellite Tracking (Sat tab)
 Live pass prediction, one-tap tuning, and continuous real-time Doppler correction for amateur
 radio satellites — turns the phone into a satellite ground station without any manual frequency
@@ -208,6 +227,10 @@ math.
   behaves once you're not actively driving it.
 - Uses your phone's GPS position automatically for pass prediction and Doppler correction —
   nothing to enter manually, and moving to a new location is picked up on its own.
+- **Weather-satellite (LRPT) and ISS SSTV passes** automatically pop open a dedicated image-decode
+  tab while tracked — see [Image Decode Modes — SSTV & LRPT](#image-decode-modes--sstv--lrpt) for
+  details, including the free-tune `SSTV`/`LRPT` Mode-tab chips that reach the same decoders on
+  any frequency, independent of a live pass.
 
 ### Multilateration (MLAT)
 A full multilateration stack for locating transmitters that don't self-report a position —
@@ -896,6 +919,23 @@ different setting choice here.
 - **RDS**: select **WFM** or **WFM Stereo** on any strong local FM broadcast station — PI,
   Program Service name, and RadioText appear automatically as an overlay on the spectrum display
   once decoded; no separate activity to open.
+
+### Image decode modes (SSTV / LRPT)
+- Select **SSTV** or **LRPT** directly from the Mode tab's protocol chips (Analogue row for
+  `SSTV`, Digital row for `LRPT`) — their tabs stay hidden until you do, same as ADS-B/AIS/etc.
+- Unlike the satellite-triggered decode (below), these modes are **free-tune**: tune to any
+  frequency you like and the decoder keeps running the whole time the mode is selected.
+- **SSTV**: works on the ISS SSTV frequency (145.800 MHz FM) or any other SSTV signal — HF
+  amateur SSTV nets, local repeater events, etc. The image builds up live in the SSTV tab as it
+  decodes; use **Save**/**Share** once you're happy with it.
+- **LRPT**: tune into the 137–138 MHz weather-satellite band for Meteor-M2, or anywhere else a
+  QPSK LRPT-alike signal might turn up. Per-channel Viterbi/Reed-Solomon stats and the composite
+  image update live in the LRPT tab.
+- Both remember their own frequency/gain/bandwidth per memory slot, so you can keep a saved SSTV
+  or LRPT frequency alongside your other 9 slots per mode without it disturbing anything else.
+- Tracking a pass from the **Sat tab** on the LRPT band or ISS SSTV frequency opens the same two
+  tabs automatically — the Mode tab chips above are simply a second, always-available way to
+  reach the identical decoder without needing a live satellite pass.
 
 ### Memory Slots
 - Set up a favorite frequency exactly how you like it (mode, gain, filters), then tap
