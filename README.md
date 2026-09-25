@@ -1,11 +1,13 @@
 # 9GRadio — Full-Featured Android SDR App
 
-A complete, production-quality Android SDR application written in Kotlin, purpose-built  
-for the **RTL-SDR V4** dongle family (RTL2832U + R828D or R828S, 28.8 MHz TCXO) — including  
-both the original **V4** (R828D) and the **V4L / "V4 Lite"** (R828S).
+A complete, production-quality Android SDR application written in Kotlin. Built and tuned around  
+the **RTL-SDR V4** dongle family (RTL2832U + R828D or R828S, 28.8 MHz TCXO) — both the original  
+**V4** (R828D) and the **V4L / "V4 Lite"** (R828S) — 9GRadio also fully supports the earlier  
+**RTL-SDR V3** and other generic RTL2832U-based dongles (R820T/R820T2, E4000, FC0012/FC0013,  
+FC2580), auto-identified the same way as the V4/V4L: no manual model selection needed.
 
 **Package:** `com.radiosport.ninegradio`  
-**Version:** 1.72
+**Version:** 1.74
 
 ---
 
@@ -45,7 +47,7 @@ source, at the same time).
 | Feature | Details |
 |---|---|
 | **Frequency range** | 500 kHz – 1766 MHz (full V4/V4L tuner range) |
-| **Hardware support** | RTL-SDR Blog V4 (R828D) and V4L "Lite" (R828S) — auto-identified from EEPROM, no manual model selection needed |
+| **Hardware support** | RTL-SDR Blog V4 (R828D) and V4L "Lite" (R828S), plus RTL-SDR V3 and generic RTL2832U dongles (R820T/R820T2, E4000, FC0012/FC0013, FC2580) — auto-identified from EEPROM/tuner probing, no manual model selection needed |
 | **HF direct sampling** | I-branch or Q-branch (Q recommended on V4/V4L, though HF upconversion means you'll rarely need it) |
 | **Auto HF switching** | Enables Q-branch automatically below 28.8 MHz |
 | **Bias tee** | One-tap ~4.5 V on antenna port for powered LNAs/filters |
@@ -351,10 +353,25 @@ better fix.
   transponder decode
 - **ACARS decoding** (vendored `acarsdec`, GPL-2.0): up to 4 VHF channels demodulated
   simultaneously
-- **Noise blanker** and **noise reducer** (adaptive noise-floor calibration, re-calibrates on
-  mode/bandwidth change)
 - Squelch gate with per-mode threshold
 - Configurable audio volume (0–200%), selectable audio sink rate
+
+### Noise Reduction
+- **Noise blanker** and **noise reducer** (adaptive noise-floor calibration, re-calibrates on
+  mode/bandwidth change)
+- **Noise Reducer profiles** — six gain-shaping profiles tuned for different noise conditions,
+  selectable from the Mode tab: **Standard** (balanced, general-purpose), **Light Touch**
+  (gentle suppression for an already-quiet band), **Heavy Static** (aggressive multi-band
+  subtraction for high broadband noise/QRN), **Tonal / CW** (protects narrowband tones/carriers
+  while cutting hard between them), **Adaptive Burst** (fast-tracking floor for noise that
+  changes over time — QSB, intermittent QRM), and **Severe QRM** (deep, surgical suppression for
+  severe, near-saturating broadband interference like power-line or switching noise).
+- **Auto mode** for the Noise Reducer continuously samples the channel's noise characteristics
+  and switches to whichever profile best matches current conditions — a brief burst or a strong
+  signal's onset can't itself trigger a switch, since it only actually changes profile once two
+  consecutive evaluations agree on a different one than what's currently active. The **"NR
+  Profile" label** always reflects whichever profile is actually active, including ones Auto
+  mode selects on its own.
 
 ### Spectrum & Waterfall Display
 - Real-time **FFT spectrum** with pinch-zoom, pan, click-to-tune; zoom/pan is mirrored live
@@ -496,7 +513,8 @@ same wire protocol as Hamlib's `rigctld` — the de-facto standard most amateur 
 software already uses to talk to a "rig." Any Hamlib-compatible program on a PC on the same
 network (WSJT-X, JTDX, fldigi, Gqrx's remote-control panel, SDR++'s rig-control module, or the
 plain `rigctl` command-line tool) can read and remotely set 9GRadio's frequency and demodulation
-mode.
+mode. Both the **"Gqrx"** rig type and the standard **"Hamlib NET rigctl / rigctld"** rig type
+are supported.
 
 - Since 9GRadio is built around a receive-only RTL-SDR dongle rather than a transceiver, Rig
   Control deliberately implements only the receive-relevant subset of the protocol —
@@ -862,6 +880,20 @@ different setting choice here.
 | **Noise blanker / reducer** | On only if you have impulsive/broadband noise (ignition, switching PSUs) | Adds CPU overhead; skip it on a clean RF environment |
 | **Bias tee** | Off unless powering an LNA/filter | Never enable with passive antennas or direct coax |
 
+### Noise Reduction
+- Leave the **Noise Reducer** off on an already-clean band — it adds CPU overhead for no
+  audible benefit when there's nothing to suppress.
+- Start with **Standard** for general-purpose listening; reach for a specific profile
+  (**Light Touch**, **Heavy Static**, **Tonal / CW**, **Adaptive Burst**, **Severe QRM**) only
+  once you've identified which kind of noise you're actually dealing with — each is tuned for
+  one noise character, not a universal "more reduction" setting.
+- Turn on **Auto** mode when conditions are changing or unpredictable (band opening/closing,
+  intermittent QRM) instead of guessing at a profile yourself — it re-evaluates continuously and
+  only switches once it's seen the same new classification twice in a row, so it won't chase a
+  brief burst or a signal's onset.
+- Watch the **"NR Profile" label** to see which profile is actually active at any moment — it
+  always reflects the real one in use, whether you picked it manually or Auto mode did.
+
 ### Digital voice (DMR / D-STAR / YSF / dPMR / NXDN)
 - Leave channel bandwidth and IF settings on their **default** values for each digital voice
   mode — they're already tuned for the shared discriminator pipeline and don't benefit from
@@ -891,9 +923,9 @@ different setting choice here.
 - Turn on **Server** in Settings → Rig Control and tap **Apply** — leave **Listen port** at the
   default `4532` unless it conflicts with something else on your network.
 - Point any Hamlib-aware client (WSJT-X, JTDX, fldigi, Gqrx, SDR++, or plain `rigctl`) at the
-  IP:port shown in the green **CONNECT →** row, using a **"GQRX"** rig type — that's the option
-  confirmed to work with 9GRadio (other Hamlib-style entries such as "NET rigctl / rigctld" or
-  backend #2 may appear in some clients but have not been verified).
+  IP:port shown in the green **CONNECT →** row. Both the **"GQRX"** rig type and the standard
+  **"Hamlib NET rigctl / rigctld"** rig type (WSJT-X/JTDX's "Hamlib NET rigctl", fldigi, and
+  `rigctl`/`rigctld` itself all use this one) work correctly against 9GRadio.
 - Leave **PTT Method** off in clients like WSJT-X — 9GRadio is receive-only, so use it purely
   for remote frequency/mode control and decoding.
 - If you need your phone's receive audio on the same PC (e.g. for WSJT-X to decode), pair over
