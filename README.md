@@ -7,7 +7,7 @@ the **RTL-SDR V4** dongle family (RTL2832U + R828D or R828S, 28.8 MHz TCXO) — 
 FC2580), auto-identified the same way as the V4/V4L: no manual model selection needed.
 
 **Package:** `com.radiosport.ninegradio`  
-**Version:** 1.81
+**Version:** 1.83
 
 ---
 
@@ -51,7 +51,7 @@ source, at the same time).
 | **HF direct sampling** | I-branch or Q-branch (Q recommended on V4/V4L, though HF upconversion means you'll rarely need it) |
 | **Auto HF switching** | Enables Q-branch automatically below 28.8 MHz |
 | **Bias tee** | One-tap ~4.5 V on antenna port for powered LNAs/filters |
-| **PPM correction** | ±50 ppm software compensation (TCXO ≈ 0) |
+| **PPM correction** | ±50 ppm software compensation (TCXO ≈ 0). The **Fine** toggle beside the slider switches it to 0.1 ppm steps (within ±5 ppm of the current value); 0.1 ppm is 43 Hz at 433.9 MHz, so it matters mainly above ~100 MHz. Over rtl_tcp the fraction is applied as a small tune offset. **Kal** (Settings tab) measures the correction for you against GSM base stations and fills it in everywhere — see [PPM Calibration (Kal)](#ppm-calibration-kal) |
 | **Gain control** | 29-step manual gain table + hardware AGC |
 | **Sample rates** | 27 presets from 240 kS/s to 2.5 MS/s (low-rate narrow-mode band + main full-spectrum band) |
 | **USB hot-plug** | Auto-detect and auto-launch on dongle insert |
@@ -307,6 +307,21 @@ better fix.
   360° ring — a heat-mapped arc shows signal strength by direction, and a peak-direction chevron
   plants itself once a heading has enough corroborating samples to be trusted, rather than
   jumping to the single loudest (and possibly multipath-corrupted) reading.
+- **Same compass as 9GNetDiag**: the dial is a flat compass card with 5° ticks, 30° numerals and
+  a red N, **turning under a fixed marker at the top** so the way you are facing is always read
+  straight ahead. The bearing needle, heat ring and peak chevron all turn with it — turn until
+  the needle (or the hot part of the ring) is under the marker and you are pointing at the
+  target. The marker goes **green when the needle is within 5° of dead ahead**. **Tap the dial**
+  to switch to north-up (the marker then swings round the rim instead); the choice is remembered.
+- **Compass health at a glance**: *Field* (µT), *Pitch* and *Roll* chips, whether the heading is
+  *True* or *Magnetic* north (true needs a location; the last-known one is used if MLAT has no
+  fix), and the sensor *Accuracy*. If accuracy is low the heading turns amber and the dial says
+  **"Low accuracy — wave the phone in a figure-8"**; a field outside 20–70 µT warns about nearby
+  metal or magnets. Heading is read from the top edge of the screen when the phone is flat, and
+  from the back of the phone when it is held upright (tilted past 55°); it is also correct in
+  landscape.
+- **Works with MLAT switched off**: the RDF tab now runs the compass itself while it is in
+  front, rather than relying on an MLAT role being enabled.
 - **Requires a directional antenna, rigidly mounted to the device**: this is a hardware
   prerequisite, not a setting — RDF works by correlating signal strength against the device's
   live compass heading at each instant, so an omnidirectional antenna has no bearing to find, and
@@ -326,6 +341,61 @@ better fix.
   fingerprint-only estimate. The dashboard shows the source and confidence of whichever fix is
   currently best, and upgrades to a better one immediately, without downgrading from a good fix
   the moment one update is briefly missed.
+
+### PPM Calibration (Kal)
+The **Kal** button on the Settings tab (it replaced the old RDF button — RDF is unchanged and is still
+its own drawer tab) measures your dongle's crystal error against live GSM base stations, tells you how far
+to trust the number, and writes it into **every PPM setting**. The measurement is
+[`kalibrate-rtl`](https://github.com/steve-m/kalibrate-rtl) (BSD-2-Clause), vendored in
+`app/src/main/cpp/kalibrate/` and driven from Kotlin, so it works on the IQ stream the app already has —
+the dongle is never opened twice and nothing external is needed. The statistics, advice, history and charts
+come from the user's standalone **9G kal v0.02**.
+
+Kal opens as a full-height screen with a band selector (**GSM900**, **EGSM900**, **GSM850**, **GSM-R**) and
+four tabs. DCS-1800 / PCS-1900 are not offered: they lie above the ~1766 MHz limit of RTL-SDR tuners.
+
+- **Calibrate tab** — **Smart calibration** scans the band, picks the strongest GSM channels, measures
+  each one (100 bursts by default) and pools them. If nothing is found at the radio's current PPM it
+  retries at ±50 ppm (a very-far-off dongle), re-measures *around* the scan estimate, and measures an
+  extra channel or two when the channels disagree. **Single channel** measures one ARFCN you pick.
+  Options: gain override (the previous gain is restored), bursts per channel (30–300), channels to combine
+  (1–5), the ±50 ppm search.
+- **Result** — a big ppm figure with its **95 % confidence interval** and a **quality grade (0–100)**:
+  Student-t interval per channel, channels pooled with **DerSimonian-Laird random-effects** weighting
+  (plus a 0.02 ppm systematic floor per channel) so one odd base station cannot dominate; Cochran's Q and
+  I² say whether the channels agree. A statistics card, plain-language **advice** (weak signal, USB
+  trouble, too few bursts, rounding loss for whole-ppm apps, "still warming up"…) and failure diagnosis
+  complete it. **Share report** / **Copy** give a text report.
+- **Charts** — *Channel agreement* (forest plot of every channel's estimate and interval against the
+  pooled result), *Offset distribution* (histogram of the bursts with the rejected ones marked),
+  *Convergence* (running mean with its narrowing 95 % band). They update live while measuring.
+- **Scan tab** — a quick band survey: power of every channel with the detection threshold, the GSM
+  channels found (tap one to select it) with offset, level and kept/rejected status, a rough band-wide
+  estimate, and a one-tap **Calibrate channel**.
+- **History tab** — every measurement is saved (up to 500). A trend chart with error bars shows the clock
+  over time; when the recent calibrations of the same dongle slope, Kal says the crystal is **still
+  warming up** (least-squares drift in ppm/h) or that it is stable. **Export CSV**, delete one entry or all.
+- **Log tab** — what the workflow decided and measured (optionally every burst offset); copy or share it.
+- **Outlier exclusion**: a median/MAD filter (from the 9G kal project) discards bad readings at three
+  levels — false sync detections in the band scan, individual bursts, and whole channels (a base station
+  with its own frequency error). A plain average would be dragged off by a single false detection.
+- **PPM auto-population** (switch on the Calibrate tab, on by default): when the result is trustworthy it
+  is applied to *all* of the app's PPM settings at once —
+  - the live correction on the radio, the RF-tab slider and the Settings-screen slider (the **Fine** toggle
+    switches itself on when the value has a fractional part, so the 0.1 ppm result is visible);
+  - every saved per-mode / per-slot PPM, so switching mode or memory slot never brings a stale value back;
+  - every stored memory channel, so recalling one doesn't either;
+  - the Rig Control / 9G Control remote, when controlling another radio.
+  The result card says exactly what was updated; a **Apply … ppm to all PPM settings** button applies it
+  by hand (e.g. when auto-apply is off). A scan alone is only a rough estimate and is never applied.
+- **When it will not auto-apply**: fewer than 30 usable bursts, a 95 % interval wider than ±0.3 ppm,
+  channels that disagree by more than 0.5 ppm, a quality score below 50, or a result outside the slider's
+  ±50 ppm. Nothing changes in that case until you press **Apply** (the reasons are listed).
+- **While it runs**: audio is muted and the radio runs at 272 kS/s; sample rate, frequency, gain, PPM and
+  volume are put back afterwards (also if you press Stop or close the screen). The Scanner must be
+  stopped first. Kal uses the live radio, not a recorded IQ file.
+- **Limits**: needs GSM coverage and an antenna that can hear it; the figure is the crystal error
+  measured at ~950 MHz. Takes roughly one to two minutes for a smart calibration.
 
 ### DSP Engine
 - **GNU Radio Android backend** ([gnuradio-android](https://github.com/bastibl/gnuradio-android)) — when the
@@ -454,7 +524,7 @@ Every demodulation mode remembers its own complete RF and display configuration 
 gain, AGC state, sample rate, FFT size/decimation/frame averaging, dB range, squelch, IF
 bandwidth, spectrum theme, waterfall palette, and more — and restores it automatically the next
 time that mode is selected, so switching between e.g. NFM and USB never requires re-tuning your
-display or RF settings from scratch.
+display or RF settings from scratch. This includes the PPM correction (to 0.1 ppm); **Kal** updates it in every mode and slot at once.
 
 ### Recording
 - **IQ recording**: raw uint8 (`.iq`), GZip-compressed (`.iq.gz`), float32 (`.cf32`)
@@ -467,6 +537,7 @@ display or RF settings from scratch.
 - Full PreferenceScreen with 75+ configurable options across RF, display, and recording categories
 - Export / import settings as JSON
 - Per-feature category organisation
+- The drawer's **Settings tab** also holds the quick buttons **Scanner**, **MLAT** and **Kal** (PPM calibration — see [PPM Calibration (Kal)](#ppm-calibration-kal))
 
 ### Update Notifications
 - **Check for new version** (Settings → Misc, on by default) looks at this repository's **Latest** GitHub release
@@ -810,6 +881,36 @@ and decoded via the `Dig` mode) is powered by a vendored copy of `mbelib-neo`
 (GPL-2.0-or-later) under `app/src/main/cpp/mbelib-neo/`, built as part of the normal NDK
 build alongside the rest of `app/src/main/cpp/`.
 
+### kalibrate (Kal: GSM-based PPM calibration)
+
+The **Kal** button on the Settings tab (it replaced the RDF button; RDF is still its own drawer tab) opens a full-height,
+four-tab screen (Calibrate / Scan / History / Log) that measures the dongle's crystal error against GSM base stations and
+writes the result into every PPM setting. The DSP is [`kalibrate-rtl`](https://github.com/steve-m/kalibrate-rtl) (BSD-2-Clause),
+vendored in `app/src/main/cpp/kalibrate/` (see `PATCHES.md` there for exactly what changed) and built as the JNI library
+`ninegradio_kal`. The scan and measurement loops are Kotlin (`kal/KalCalibrator.kt`) fed from the IQ stream the app already has,
+so the radio is never opened twice. The analysis layer (statistics, advisor, history, report, charts) is ported from the
+standalone **9G kal v0.02** and is pure Kotlin where possible so it is unit-tested on the JVM.
+
+* **Workflows** (`KalCalibrator`): `runScan` (power sweep + FCCH search + scan-level outlier rejection), `runChannel`
+  (N bursts on one ARFCN, burst-level rejection, Student-t interval) and `runSmart` (scan with a +-50 ppm retry, re-centre on the scan
+  estimate, measure the strongest channels — more if they disagree — then random-effects pooling). The engine may change the
+  source's PPM temporarily; the original value is always restored.
+* **Outlier exclusion** (median/MAD, from the 9G kal project, `robust.h`) at three levels: false sync detections in the band scan
+  (e.g. a 31 kHz tone), individual bursts, and whole channels (a base station with its own error).
+* **Analysis** (`kal/`): `Stats` (summary, t/chi-square critical values, regression, DerSimonian-Laird pooling, histogram, running mean),
+  `Advisor` (quality score, advice, warm-up drift, failure diagnosis), `History` (TSV store, CSV export), `Report`, `Charts`
+  (canvas charts, no chart library), `KalSession` (state that survives closing the screen), `KalScreens` / `KalSheet` (UI).
+* **Bands**: GSM900, EGSM900, GSM850, GSM-R. DCS-1800 / PCS-1900 are above the RTL-SDR tuner range (~1766 MHz) and are not offered
+  (an old saved DCS1800 setting falls back to GSM900).
+* **Auto-populate** (switch, on by default): when the result is trustworthy (>= 30 usable bursts, 95 % interval <= 0.3 ppm,
+  channels within 0.5 ppm, score >= 50, inside the slider's range) it is applied to the live correction, the RF-tab and Settings
+  sliders (the Fine toggle is switched on for fractional values), every saved per-mode/per-slot PPM, and every stored memory channel.
+  Otherwise nothing changes until **Apply** is pressed.
+* The radio's sample rate, frequency, gain, PPM and volume are restored afterwards. Needs GSM coverage; it measures at ~950 MHz, so
+  the result is the crystal error there; if your HF correction should differ, adjust it afterwards (the slider is unchanged).
+* **Tests**: `KalMathTest`, `KalLogicTest` (JUnit); the engine is exercised end-to-end against a simulated GSM band by
+  `app/src/main/cpp/tests/jvm/KalE2E.kt` (see `run_kal_e2e.sh` there) and the native part by `tests/kalibrate_host_test.cc`.
+
 ### readsb (ADS-B / Mode S)
 
 ADS-B decoding is powered by a vendored, unmodified copy of
@@ -868,7 +969,7 @@ cd 9GRadio
 ./gradlew installDebug
 
 # Build release APK (requires signing config)
-# Output: app/build/outputs/apk/release/9GRadio_v1.68_release.apk
+# Output: app/build/outputs/apk/release/9GRadio_v1.83_release.apk
 ./gradlew assembleRelease
 ```
 
@@ -901,6 +1002,8 @@ cd 9GRadio
 │       │   ├── resampler.cpp
 │       │   ├── include/                     # vocoder.h, volk_android.h, iq_convert.h
 │       │   ├── mbelib-neo/                  # vendored MBE vocoder library (GPL-2.0)
+│       │   ├── kalibrate/                   # vendored kalibrate-rtl DSP (BSD-2) + kal_session / kal_fft / robust.h — see PATCHES.md
+│       │   ├── kal_jni.cpp                  # JNI bridge for the Kal calibration (ninegradio_kal)
 │       │   ├── readsb/                      # vendored, unmodified readsb — ADS-B (GPL-2.0)
 │       │   ├── ais-catcher/                 # vendored, unmodified AIS-catcher (GPL-3.0)
 │       │   ├── redsea/                      # vendored, unmodified redsea — RDS (MIT)
@@ -932,6 +1035,17 @@ cd 9GRadio
 │       │   │   ├── AcarsMultiChannelDecoder.kt # ACARS: up to 4 simultaneous channels
 │       │   │   ├── RdsDecoder.kt / RedseaProcess.kt # RDS: feeds/reads vendored redsea subprocess
 │       │   │   └── SourceDiagnostic.kt     # IQ source health diagnostics
+│       │   ├── kal/
+│       │   │   ├── KalSheet.kt             # The "Kal" screen (Settings tab): band, progress, 4 tabs, radio prep/restore, Apply
+│       │   │   ├── KalScreens.kt           # Calibrate / Scan / History / Log tabs
+│       │   │   ├── KalSession.kt           # Settings, running measurement, results, log, history (survives closing the screen)
+│       │   │   ├── KalCalibrator.kt        # runScan / runChannel / runSmart on the live IQ, 3-level outlier rejection
+│       │   │   ├── KalMath.kt              # bands, ppm maths, auto-apply gate (pure Kotlin, unit-tested)
+│       │   │   ├── Stats.kt / Advisor.kt   # Student-t, random-effects pooling, drift; quality score, advice (from 9G kal v0.02)
+│       │   │   ├── Models.kt / KalData.kt  # Scan / Cal / Smart result models, Fmt number formatting
+│       │   │   ├── History.kt / Report.kt  # TSV history + CSV export; text reports
+│       │   │   ├── Charts.kt / KalUi.kt    # canvas charts (band power, histogram, convergence, forest, trend); UI toolkit
+│       │   │   └── KalNative.kt            # JNI declarations
 │       │   ├── mlat/
 │       │   │   ├── MlatManager.kt          # App-wide MLAT owner; protocol-agnostic submitDetection()
 │       │   │   ├── MlatMath.kt             # TDOA solver, GDOP, virtual station placement
@@ -1269,6 +1383,26 @@ different setting choice here.
   only 2 real stations connected it automatically fills in synthetic "virtual" stations so the
   test can still run a full solve.
 
+### PPM calibration (Kal)
+- **Use it in your own area's GSM band.** Ghana and most of Africa, Europe and Asia use **GSM900** (and
+  **EGSM900**); if one finds nothing, try the other. GSM850 is for the Americas. DCS-1800 / PCS-1900 are
+  above what an RTL-SDR can tune and are not offered.
+- **Let the dongle warm up first** (a few minutes powered, ideally in its final enclosure): a crystal's error
+  drifts as it warms, so calibrating cold gives a value that is wrong ten minutes later. Calibrate twice a
+  few minutes apart — the **History** tab will tell you whether it is still drifting. A TCXO dongle
+  (V4/V4L) settles much faster than a plain-crystal one.
+- **Use a real antenna and a normal gain.** If Kal reports "No GSM base station found", raise the gain
+  (Options → Gain) or try another band. Don't calibrate indoors behind metal shielding.
+- **Stop the Scanner and any recording first**, and don't retune or touch the PPM slider while it runs.
+- **Trust the interval and the grade, not the digits.** A healthy result is graded Good/Excellent, within
+  about ±0.05 ppm and uses 200+ bursts. If it is flagged low-confidence, run it again or pick a stronger
+  band before pressing **Apply**.
+- **Re-run it when the dongle or its temperature changes a lot.** The crystal is what drifts; the antenna and
+  cable have no effect on it.
+- **HF will not always agree.** Kal measures at ~950 MHz. The V4/V4L upconverter path for HF can
+  need a slightly different value; fine-tune the slider afterwards against a known HF carrier (WWV, a
+  broadcast carrier) — the Fine toggle gives 0.1 ppm steps.
+
 ### Direction Finding (RDF)
 - **Mount the antenna and device together, rigidly, before starting a session** — this is a
   hardware requirement, not a nice-to-have. A directional antenna (Yagi, log-periodic, patch,
@@ -1283,7 +1417,9 @@ different setting choice here.
   linked station also ranging on the same target tightens it toward a real trilaterated fix.
 - **Recalibrate the device compass** (figure-8 motion) if the compass ring on the dial jumps
   erratically between samples, and keep the device away from magnets/speakers — compass drift and
-  antenna misalignment produce identical-looking symptoms, so rule out the compass first.
+  antenna misalignment produce identical-looking symptoms, so rule out the compass first. The
+  dial tells you when it needs this: watch for the amber heading and the **Low accuracy** pill,
+  and for an amber **Field** chip (outside 20–70 µT).
 - **Sweep slowly and dwell briefly on the true bearing** rather than spinning fast — the peak
   chevron only plants once a heading has multiple corroborating samples, and a fast single spin
   may scatter only one sample per heading across several full rotations before any heading
@@ -1305,7 +1441,8 @@ ADS-B decoding uses a vendored, unmodified copy of `readsb` (GPL-2.0-or-later),
 plus a vendored copy of `zstd` (BSD/GPLv2 dual-licensed).  
 AIS decoding uses a vendored, unmodified copy of `AIS-catcher` (GPL-3.0-or-later).  
 RDS decoding uses a vendored, unmodified copy of `redsea` (MIT).  
-ACARS decoding uses a vendored copy of `acarsdec` (GPL-2.0-or-later).
+ACARS decoding uses a vendored copy of `acarsdec` (GPL-2.0-or-later).  
+PPM calibration (Kal) uses the DSP of `kalibrate-rtl` (BSD-2-Clause, Copyright (c) 2010 Joshua Lackey, with Alexander Chemeris and Steve Markgraf; patches listed in `app/src/main/cpp/kalibrate/PATCHES.md`) and the outlier filter, statistics, advisor, history and charts from the 9G kal project (v0.02, R.N.K 9G5AR RadioSport).
 
 ---
 
