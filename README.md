@@ -1384,7 +1384,7 @@ different setting choice here.
   test can still run a full solve.
 
 ### PPM calibration (Kal)
-- **Use it in your own area's GSM band.** Ghana and most of Africa, Europe and Asia use **GSM900** (and
+- **Use it in your own area's GSM band.**  Africa, Asia and Europe use **GSM900** (and
   **EGSM900**); if one finds nothing, try the other. GSM850 is for the Americas. DCS-1800 / PCS-1900 are
   above what an RTL-SDR can tune and are not offered.
 - **Let the dongle warm up first** (a few minutes powered, ideally in its final enclosure): a crystal's error
@@ -1442,7 +1442,8 @@ plus a vendored copy of `zstd` (BSD/GPLv2 dual-licensed).
 AIS decoding uses a vendored, unmodified copy of `AIS-catcher` (GPL-3.0-or-later).  
 RDS decoding uses a vendored, unmodified copy of `redsea` (MIT).  
 ACARS decoding uses a vendored copy of `acarsdec` (GPL-2.0-or-later).  
-PPM calibration (Kal) uses the DSP of `kalibrate-rtl` (BSD-2-Clause, Copyright (c) 2010 Joshua Lackey, with Alexander Chemeris and Steve Markgraf; patches listed in `app/src/main/cpp/kalibrate/PATCHES.md`) and the outlier filter, statistics, advisor, history and charts from the 9G kal project (v0.02, R.N.K 9G5AR RadioSport).
+PPM calibration (Kal) uses the DSP of `kalibrate-rtl` (BSD-2-Clause,) 
+Outlier filter, statistics, advisor, history and charts from the 9G kal project.
 
 ---
 
