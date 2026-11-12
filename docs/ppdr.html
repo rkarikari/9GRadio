@@ -62,15 +62,23 @@ details{margin:6px 0 0;font-size:13px;color:var(--ink2)}summary{cursor:pointer;f
 input[type=number]{width:72px;font:inherit;font-size:14px;background:var(--gray);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px 6px}
 .sub{display:flex;gap:6px 16px;flex-wrap:wrap;align-items:center;margin-top:8px}
 @media (max-width:560px){.row label{flex-basis:100%}.ar{flex-basis:100%;height:20px;transform:rotate(90deg)}}
+details.cm{margin:0 0 14px;font-size:16px}
+details.cm>summary{font-size:13px;font-weight:600;color:var(--ink2)}
+details.cm>p{margin-top:8px}details.cm>p:last-child{margin-bottom:0}
+details.tbl{font-size:14px;margin:8px 0 0}
+details.tbl>summary{font-size:14px;color:var(--ink)}
+details.tbl>summary span{font-weight:400;color:var(--ink2)}
+.tbar{display:flex;gap:8px 12px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.tbar small{color:var(--ink2);font-size:13px}
+#tscroll:not(.all) tbody tr:not(.sel){display:none}
+#tscroll:not(.all) tbody tr.sel td{border-bottom:0}
 </style>
 </head>
 <body>
 <main>
 <h1>9GRadio, per protocol Dynamic Range</h1>
-<p>Narrowing the channel filter discards quantization noise for gain. The amount is set by the RF tab’s <b>Width</b> and <b>sample-rate</b> controls. The RF tab’s <b>gain controls</b> (Gain slider, Tuner AGC, Hardware AGC) then decide where that range sits: how strong a signal can get before the converter clips, and how weak a signal still rises above the noise.</p>
-<div class="formula">Ceiling (dB) = 49.9 + 10·log<sub>10</sub>(sample rate ÷ channel width)</div>
-<div class="formula">Usable DR (dB) = strongest signal − noise floor, up to the clip level; gain moves the clip level 1 dB per dB</div>
-
+<details class="cm"><summary>Commentary</summary><p>Narrowing the channel filter discards quantization noise for gain. The amount is set by the RF tab’s <b>Width</b> and <b>sample-rate</b> controls. The RF tab’s <b>gain controls</b> (Gain slider, Tuner AGC, Hardware AGC) then decide where that range sits: how strong a signal can get before the converter clips, and how weak a signal still rises above the noise.</p><div class="formula">Ceiling (dB) = 49.9 + 10·log<sub>10</sub>(sample rate ÷ channel width)</div>
+<div class="formula">Usable DR (dB) = strongest signal − noise floor, up to the clip level; gain moves the clip level 1 dB per dB</div></details>
 <div class="panel" aria-label="Receiver settings">
 <div class="row"><label for="mode">Protocol</label><select id="mode"></select></div>
 <div class="row"><label for="bw">Width slider</label><input id="bw" type="range" min="0" max="1" step="1" value="0"><span class="val" id="bwv"></span><span class="pre"><button id="pdef">Default</button><button id="pmin">Narrowest</button></span></div>
@@ -86,33 +94,32 @@ input[type=number]{width:72px;font:inherit;font-size:14px;background:var(--gray)
 <div class="chain" role="img" aria-label="Signal chain with live values"><div class="box k2"><b>Gain ladder</b><span id="c0"></span></div><div class="ar">›</div><div class="box k1"><b>8-bit converter</b><span id="c1"></span></div><div class="ar">›</div><div class="box k3"><b>Channel filter</b><span id="c2"></span></div><div class="ar">›</div><div class="box k2"><b>Result</b><span id="c3"></span></div></div>
 
 <h2>Gain moves the window</h2>
-<p>For the protocol and width above. The shaded band is the window between the converter’s clip level and the noise floor. Raising gain slides it down: the clip level falls toward your strongest signal (dashed black), which puts more of the converter’s range to work, and once it drops below that signal the capture overloads. In manual mode the thick line marks the Gain slider; with Tuner AGC on it marks where the loop settles.</p>
+<details class="cm"><summary>Commentary</summary><p>For the protocol and width above. The shaded band is the window between the converter’s clip level and the noise floor. Raising gain slides it down: the clip level falls toward your strongest signal (dashed black), which puts more of the converter’s range to work, and once it drops below that signal the capture overloads. In manual mode the thick line marks the Gain slider; with Tuner AGC on it marks where the loop settles.</p></details>
 <div class="legend"><span><i style="background:var(--orange)"></i>Clip level</span><span><i style="background:var(--blue)"></i>Noise floor (quantization + tuner)</span><span><i style="background:#8a8d92"></i>Tuner noise alone</span><span><i style="background:var(--ink)"></i>Strongest signal</span></div>
 <div class="chart" style="height:340px"><canvas id="gwin" role="img" aria-label="Clip level and noise floor in dBm against tuner gain"></canvas></div>
 <h2>Usable range against gain</h2>
-<p>Blue is the range your strongest signal actually gets. At low gain that signal sits far below the clip level, so most of the converter’s range is wasted, and each extra dB of gain recovers a dB. The peak is where the clip level just meets the signal; past it the capture overloads and the range collapses. Grey is the window’s capacity, which only falls at the top end, where the tuner’s own noise takes over.</p>
+<details class="cm"><summary>Commentary</summary><p>Blue is the range your strongest signal actually gets. At low gain that signal sits far below the clip level, so most of the converter’s range is wasted, and each extra dB of gain recovers a dB. The peak is where the clip level just meets the signal; past it the capture overloads and the range collapses. Grey is the window’s capacity, which only falls at the top end, where the tuner’s own noise takes over.</p></details>
 <div class="chart" style="height:280px"><canvas id="dg" role="img" aria-label="Usable dynamic range against tuner gain"></canvas></div>
 <h2>All protocols at this sample rate</h2>
-<p>Bars are ceilings at the chosen sample rate: blue at the protocol’s default width, orange for what the Width slider adds at its narrowest stop. The black tick on each row is the usable range at your gain, narrowest width. The diamond is your current setting.</p>
+<details class="cm"><summary>Commentary</summary><p>Bars are ceilings at the chosen sample rate: blue at the protocol’s default width, orange for what the Width slider adds at its narrowest stop. The black tick on each row is the usable range at your gain, narrowest width. The diamond is your current setting.</p></details>
 <div class="legend"><span><i style="background:#8a8d92"></i>8-bit ceiling</span><span><i style="background:var(--blue)"></i>Default width</span><span><i style="background:var(--orange)"></i>Narrowest slider stop</span><span><i style="background:var(--ink)"></i>At your gain</span></div>
 <div class="chart" style="height:560px"><canvas id="bars" role="img" aria-label="Stacked bars of dynamic range per protocol at the chosen sample rate">Dynamic range per protocol at the selected sample rate; see the table below for the numbers.</canvas></div>
 
 <h2>Range against channel width</h2>
-<p>Each tenfold narrowing is worth 10 dB. The thick segment is the Width slider’s reach for the selected protocol; the dot is your setting.</p>
+<details class="cm"><summary>Commentary</summary><p>Each tenfold narrowing is worth 10 dB. The thick segment is the Width slider’s reach for the selected protocol; the dot is your setting.</p></details>
 <div class="legend"><span><i style="background:var(--blue)"></i>Your sample rate</span><span><i style="background:var(--orange)"></i>2.5 MS/s</span><span><i style="background:#8a8d92"></i>240 kS/s</span></div>
 <div class="chart" style="height:340px"><canvas id="curve" role="img" aria-label="Dynamic range against channel width on a log axis"></canvas></div>
 
 <h2>Range against sample rate</h2>
-<p>For the selected protocol and width: every doubling of the sample rate adds 3 dB. The gap is the RTL-SDR’s dead zone between 300 and 912 kS/s, where the app offers no rate.</p>
+<details class="cm"><summary>Commentary</summary><p>For the selected protocol and width: every doubling of the sample rate adds 3 dB. The gap is the RTL-SDR’s dead zone between 300 and 912 kS/s, where the app offers no rate.</p></details>
 <div class="chart" style="height:300px"><canvas id="rate" role="img" aria-label="Dynamic range against sample rate for the selected protocol"></canvas></div>
 
 <h2>Maximum per protocol</h2>
-<p>Select a row to load it into the controls. All columns use the narrowest width. “Narrowest” is the lowest Width stop the app offers for that mode, or its default width if that is narrower (NXDN and dPMR default to 6.25 kHz, below their slider’s 12.5 kHz floor).</p>
-<div class="scroll"><table><thead><tr><th>Protocol(s)</th><th class="n">Slider range</th><th class="n">Default</th><th class="n">Narrowest</th><th class="n">Ceiling at 2.5 MS/s</th><th class="n">Window at max manual gain</th><th class="n">Your settings</th></tr></thead><tbody id="tb"></tbody></table></div>
+<details class="cm"><summary>Commentary</summary><p>Select a row to load it into the controls. All columns use the narrowest width. “Narrowest” is the lowest Width stop the app offers for that mode, or its default width if that is narrower (NXDN and dPMR default to 6.25 kHz, below their slider’s 12.5 kHz floor).</p></details>
+<details class="tbl" id="tbd"><summary>Protocol table <span id="tsel"></span></summary><div class="tbar"><small id="tmsg">Showing the selected protocol only.</small><button id="tall" type="button" aria-pressed="false">Show all protocols</button></div><div class="scroll" id="tscroll"><table><thead><tr><th>Protocol(s)</th><th class="n">Slider range</th><th class="n">Default</th><th class="n">Narrowest</th><th class="n">Ceiling at 2.5 MS/s</th><th class="n">Window at max manual gain</th><th class="n">Your settings</th></tr></thead><tbody id="tb"></tbody></table></div></details>
 
 <h2>Read these as ceilings</h2>
-<p>They assume an ideal 8-bit converter, white quantization noise and one full-scale carrier; real dongles fall short. The filter only removes quantization noise. A strong neighbour that clips the converter creates intermodulation inside your channel that no filter removes. The app warns at 0.1% of samples at the rails and flags severe overload at 1%.</p>
-<p class="note">For CW, CWR, USB and LSB the slider sets the demodulator’s real receive filter.</p>
+<details class="cm"><summary>Commentary</summary><p>They assume an ideal 8-bit converter, white quantization noise and one full-scale carrier; real dongles fall short. The filter only removes quantization noise. A strong neighbour that clips the converter creates intermodulation inside your channel that no filter removes. The app warns at 0.1% of samples at the rails and flags severe overload at 1%.</p><p class="note">For CW, CWR, USB and LSB the slider sets the demodulator’s real receive filter.</p></details>
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
@@ -216,6 +223,7 @@ function refresh(){
  d[1].data=GX.map(function(x,i){return{x:x,y:cs[i].w};});
  d[2].data=[{x:Ge,y:v}];
  charts.dg.update("none");
+ $("tsel").textContent="(selected: "+g.n+")";
  var rows=document.querySelectorAll("#tb tr");for(var i=0;i<rows.length;i++){rows[i].className=i===gi?"sel":"";rows[i].children[6].textContent=f1(model(G[i],fs,G[i].stops[0],st).u)+" dB";}
 }
 function table(){
@@ -225,6 +233,7 @@ function table(){
  $("tb").innerHTML=h;
  $("tb").onclick=function(e){var t=e.target.closest("tr");if(t)setMode(+t.getAttribute("data-i"));};
 }
+$("tall").onclick=function(){var on=$("tscroll").classList.toggle("all");this.textContent=on?"Show selected only":"Show all protocols";this.setAttribute("aria-pressed",String(on));$("tmsg").textContent=on?"Showing all protocols. Select a row to load it into the controls.":"Showing the selected protocol only. Change it with the Protocol list, or show all.";};
 sel.onchange=function(){setMode(+sel.value);};
 bw.oninput=function(){bi=+bw.value;refresh();};
 fsr.oninput=function(){si=+fsr.value;refresh();};
