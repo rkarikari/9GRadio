@@ -7,7 +7,7 @@ the **RTL-SDR V4** dongle family (RTL2832U + R828D or R828S, 28.8 MHz TCXO) — 
 FC2580), auto-identified the same way as the V4/V4L: no manual model selection needed.
 
 **Package:** `com.radiosport.ninegradio`  
-**Version:** 1.85
+**Version:** 1.86
 
 ---
 
@@ -53,6 +53,7 @@ source, at the same time).
 | **Bias tee** | One-tap ~4.5 V on antenna port for powered LNAs/filters |
 | **PPM correction** | ±50 ppm software compensation (TCXO ≈ 0). The **Fine** toggle beside the slider switches it to 0.1 ppm steps (within ±5 ppm of the current value); 0.1 ppm is 43 Hz at 433.9 MHz, so it matters mainly above ~100 MHz. Over rtl_tcp the fraction is applied as a small tune offset. **Kal** (Settings tab) measures the correction for you against GSM base stations and fills it in everywhere — see [PPM Calibration (Kal)](#ppm-calibration-kal) |
 | **Gain control** | 29-step manual gain table + hardware AGC |
+| **Attenuator** | **Attenu** button on the RF tab (same row as Tuner AGC / Hardware AGC), off by default. Tap it to turn it on — it turns amber and reveals a 1–30 dB slider — and tap again to turn it off. A digital, post-ADC attenuator: it lowers the level of the whole IQ stream (spectrum, waterfall, squelch, S-meter, demodulators, decoders) and works with any source and with AGC on or off. IQ recordings and the ADC overload/clip meter still see the untouched device samples, and it cannot cure ADC overload itself — lower the tuner **Gain** for that. Saved per mode/slot and mirrored over Rig Control |
 | **Sample rates** | 27 presets from 240 kS/s to 2.5 MS/s (low-rate narrow-mode band + main full-spectrum band) |
 | **USB hot-plug** | Auto-detect and auto-launch on dongle insert |
 | **rtl_tcp client** | Connect to a remote `rtl_tcp` / `rtl_tcp_andro` server over the network instead of a local USB dongle (see [rtl_tcp Server Source](#rtl_tcp-server-source) below) |
@@ -334,10 +335,19 @@ and a loose mount gives confident-looking but wrong readings that the app can't 
 - **One direction isn't a position**: signal strength can't tell distance for a transmitter of unknown
   power, so a single line gives direction only. Take readings from two or more different spots and
   the app marks where the lines cross, with a circle showing how far to trust it. The wider apart your
-  spots, the smaller the circle; spots close together show `unbounded (low confidence)`. As a rule of
-  thumb, spots should be at least a fifth of the distance to the transmitter apart. For a transmitter
-  6 km away, spots 2 km apart give about ±12 km, 3 km apart about ±5 km, and 6 km apart about ±2.5 km.
-  Lines that diverge or run parallel give no position. Sweeps work the same way, and walking away
+  spots, the smaller the circle. Lines that cross at too shallow an angle to tell apart from parallel
+  (noise alone can make nearby spots look like a decent crossing) show `unbounded (low confidence)`:
+  the tier reads **Bearing**, no distance is shown, and the map draws the lines only, with no transmitter
+  marker. As a rule of thumb, spots should be at least about two-thirds of the distance to the
+  transmitter apart, and the circle only becomes tight well beyond that. For a transmitter 6 km away,
+  spots 3 km apart are still unbounded, 4.5 km apart give a circle of about ±26 km (little better
+  than "somewhere out there"), and 6 km apart about ±7.5 km. The circle is deliberately generous
+  because the far side of a shallow crossing really is that uncertain: by simulation the true
+  position lies inside it about 88% of the time, within twice its radius about 97%, within three
+  times about 99%. Three or more spots are held to the same standard as two -- bearing noise alone
+  passes as a fix no more than about 0.5% of the time however many lines there are -- and lines
+  that disagree with their own stated uncertainty widen the circle. Lines that diverge or run
+  parallel give no position. Sweeps work the same way, and walking away
   from a spot keeps your earlier lines so they can still be crossed.
 - **Your own transmitter**: if you know a transmitter's power (your own beacon or test
   transmitter), **long-press the tuned-frequency label** on the RDF tab and enter it — the app can
