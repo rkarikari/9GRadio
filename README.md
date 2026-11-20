@@ -7,7 +7,7 @@ the **RTL-SDR V4** dongle family (RTL2832U + R828D or R828S, 28.8 MHz TCXO) — 
 FC2580), auto-identified the same way as the V4/V4L: no manual model selection needed.
 
 **Package:** `com.radiosport.ninegradio`  
-**Version:** 1.83
+**Version:** 1.85
 
 ---
 
@@ -295,52 +295,79 @@ through each channel one at a time (scan → listen → retune → listen…).
   frequency.
 
 ### Direction Finding (RDF)
-A directional-antenna compass-ranging tab (in the same tabbed Drawer as ADS-B/AIS/ACARS/APRS)
-for estimating the position of a transmitter that has **no self-reported position at all** —
-the case MLAT's decoded-identity correlation can't help with on its own, but that a live bearing
-can. RDF and MLAT are complementary halves of the same location-fusion pipeline, not separate
-features: both feed the same solver, and the app always shows whichever currently produces the
-better fix.
+Finds the position of a transmitter that doesn't report its own location — something MLAT alone can't
+do. Point a directional antenna at the signal and sweep around: the app works out which way it is.
+Take readings from a couple of different spots and it marks where the lines cross. RDF and MLAT share
+the same location engine, and the app always shows whichever result is currently best.
 
-- **Live compass + signal-strength dial**: as you sweep, the phone/tablet's compass heading is
-  paired with the live signal reading on the currently ranged target and plotted around a
-  360° ring — a heat-mapped arc shows signal strength by direction, and a peak-direction chevron
-  plants itself once a heading has enough corroborating samples to be trusted, rather than
-  jumping to the single loudest (and possibly multipath-corrupted) reading.
-- **Same compass as 9GNetDiag**: the dial is a flat compass card with 5° ticks, 30° numerals and
-  a red N, **turning under a fixed marker at the top** so the way you are facing is always read
-  straight ahead. The bearing needle, heat ring and peak chevron all turn with it — turn until
-  the needle (or the hot part of the ring) is under the marker and you are pointing at the
-  target. The marker goes **green when the needle is within 5° of dead ahead**. **Tap the dial**
-  to switch to north-up (the marker then swings round the rim instead); the choice is remembered.
-- **Compass health at a glance**: *Field* (µT), *Pitch* and *Roll* chips, whether the heading is
-  *True* or *Magnetic* north (true needs a location; the last-known one is used if MLAT has no
-  fix), and the sensor *Accuracy*. If accuracy is low the heading turns amber and the dial says
-  **"Low accuracy — wave the phone in a figure-8"**; a field outside 20–70 µT warns about nearby
-  metal or magnets. Heading is read from the top edge of the screen when the phone is flat, and
-  from the back of the phone when it is held upright (tilted past 55°); it is also correct in
-  landscape.
-- **Works with MLAT switched off**: the RDF tab now runs the compass itself while it is in
-  front, rather than relying on an MLAT role being enabled.
-- **Requires a directional antenna, rigidly mounted to the device**: this is a hardware
-  prerequisite, not a setting — RDF works by correlating signal strength against the device's
-  live compass heading at each instant, so an omnidirectional antenna has no bearing to find, and
-  an antenna that isn't fixed in the same orientation as the device (loose mount, hand-held with
-  slipping grip) produces a confident-looking but silently wrong reading with no way for the app
-  to detect the mismatch.
-- **Target picker** covers any actively-heard station lacking a position fix — ADS-B/AIS/ACARS/
-  digital-voice targets with `no pos`, other linked MLAT-wire stations, or the currently tuned RF
-  frequency directly via a **"Track current tuner frequency"** toggle.
-- **Trilaterates with linked stations**, not just a single bearing: one receiver alone can only
-  produce a bearing ray; every additional linked MLAT peer also ranging on the same target lets
-  the app solve a real geometric fix instead, the same way additional MLAT stations improve a
-  TDOA solve.
-- **Shares the location-fusion ladder with MLAT and RSSI fingerprinting**: a genuine MLAT
-  time-difference-of-arrival solve always outranks an RDF or fingerprint-derived fix when one
-  exists; a multi-station RDF trilateration outranks a single-station bearing ray or a
-  fingerprint-only estimate. The dashboard shows the source and confidence of whichever fix is
-  currently best, and upgrades to a better one immediately, without downgrading from a good fix
-  the moment one update is briefly missed.
+**What you need:** a directional antenna (Yagi, log-periodic, patch, etc.) fixed firmly to your phone
+or tablet so the two always point the same way. An omnidirectional antenna has no direction to find,
+and a loose mount gives confident-looking but wrong readings that the app can't detect.
+
+**Quick start**
+1. Fix the antenna firmly to your device and open the **RDF** tab.
+2. Choose a target (or switch on **Track current tuner frequency**) and press **START**.
+3. Turn slowly — a quick spin gives the app too little to go on — until the needle sits under the
+   top marker and the signal arc is at its brightest. That's the direction of the transmitter.
+4. Walk to a different spot and repeat. Once two lines cross, the transmitter's position appears.
+
+- **Compass dial**: as you turn, a coloured arc shows signal strength by direction, and a marker
+  settles on the strongest direction once enough readings agree, so one noisy spike (or a reflected
+  signal) can't fool it. The compass card (same style as 9GNetDiag) turns under a fixed marker at the
+  top, so the way you face is always straight ahead. Turn until the needle is under the marker — it
+  goes **green within 5° of dead ahead**. **Tap the dial** to switch to north-up; your choice is
+  remembered.
+- **Compass health**: small indicators show magnetic field strength, tilt, true or magnetic north,
+  and sensor accuracy. If accuracy drops, the heading turns amber and the dial asks you to
+  **wave the phone in a figure-8**; a field outside 20–70 µT warns of nearby metal or magnets. The
+  heading is read from the top edge of the screen when the phone is flat and from its back when held
+  upright, and it works in landscape too.
+- **Works without MLAT**: the RDF tab runs the compass by itself — no need to enable MLAT first.
+- **Choosing a target**: pick any heard station that has no position (ADS-B, AIS, ACARS or
+  digital-voice targets marked `no pos`, or other linked stations), or switch on **"Track current
+  tuner frequency"** to follow whatever you're tuned to.
+- **Quick aim (SET)**: point at the transmitter and press the amber **SET** button (between **START**
+  and **RAY MAP**) to record a direction instantly — no sweep needed, with or without **START**
+  running. That reading stays put: a later sweep at the same spot won't replace it. Press **SET**
+  again at the same spot to redo it; **Clear** removes it. It allows about ±8° for hand aim, and
+  tells you if there's no target, GPS fix or reliable compass reading.
+- **One direction isn't a position**: signal strength can't tell distance for a transmitter of unknown
+  power, so a single line gives direction only. Take readings from two or more different spots and
+  the app marks where the lines cross, with a circle showing how far to trust it. The wider apart your
+  spots, the smaller the circle; spots close together show `unbounded (low confidence)`. As a rule of
+  thumb, spots should be at least a fifth of the distance to the transmitter apart. For a transmitter
+  6 km away, spots 2 km apart give about ±12 km, 3 km apart about ±5 km, and 6 km apart about ±2.5 km.
+  Lines that diverge or run parallel give no position. Sweeps work the same way, and walking away
+  from a spot keeps your earlier lines so they can still be crossed.
+- **Your own transmitter**: if you know a transmitter's power (your own beacon or test
+  transmitter), **long-press the tuned-frequency label** on the RDF tab and enter it — the app can
+  then estimate distance as well. It's remembered between launches; CLEAR removes it.
+- **Walking guidance**: the "No fix yet" line shows each reading as you take it (for example
+  `ray1: 142°±9°, ray2: 171°±8° (+34m)` — direction, uncertainty, and how far you walked between
+  them) and what to do next: `hold` (keep sweeping here), `walk 290m across` (how far to move
+  sideways — walking straight at the target adds nothing) or `SWEEP NOW` (you've moved far enough,
+  with a good angle). The phone gives a double buzz at **SWEEP NOW**, so you can keep your eyes on
+  the target.
+- **Ray map**: **RAY MAP** opens a full-screen map of every direction line you've recorded (yours
+  solid, linked stations' dashed, with a faint wedge showing uncertainty) and every transmitter that's
+  been located by any method — RDF, MLAT, signal-strength estimate, or its own reported position
+  (ADS-B, AIS, APRS, DPRS). Each shows a crosshair with an uncertainty circle, and a hollow circle
+  marks where another method disagrees. **Tap a transmitter** (or its legend row) for details: how it
+  was found, coordinates, accuracy, how old the last position is, and each station involved with its
+  distance and bearing to the fix. The legend zooms to a target and can hide self-reported
+  positions. The map works after a restart and uses the offline map cache.
+- **Teamwork**: when other linked stations hear the same target, the app combines everyone's
+  readings into a real position instead of just a line. More stations is the biggest accuracy boost.
+- **Best result wins**: a true MLAT timing fix beats an RDF fix, and a multi-station RDF fix beats a
+  single-station line. The dashboard shows the source and confidence of the best fix, upgrades
+  automatically, and doesn't drop a good fix because one update was briefly missed.
+- **Behind the accuracy**:
+  - The direction comes from the best fit across your whole sweep, not one momentary compass reading.
+  - A signal with no real direction (such as one from an omnidirectional antenna) reports no
+    bearing instead of a guess.
+  - Fixes for moving targets (aircraft, ships, vehicles) are smoothed, and outliers are ignored.
+  - When an MLAT fix and an RDF fix agree, they're blended into a tighter position; when they
+    disagree, the clearly more precise one is used.
 
 ### PPM Calibration (Kal)
 The **Kal** button on the Settings tab (it replaced the old RDF button — RDF is unchanged and is still
@@ -720,6 +747,9 @@ so don't put anything confidential in them.
   connect-back check has confirmed a 9GRadio answers, and — where the network can't accept inbound
   connections (carrier-grade NAT, mobile data) — is reached through a relay it dials *out* to. Clients
   see directory radios in the same list. Off by default.
+- **Stereo.** **WFM Stereo** on a radio comes through as real stereo: a Client plays the radio's left and right channels
+  (32 kHz) on its own speaker or headphones. A Client tells the radio it can play stereo when it subscribes, so an older
+  Client on the same radio keeps getting the mono mix, and the Windows 9G Control server (`ninegradio-server`) sends stereo the same way.
 - **Several controllers at once.** One radio can be controlled by up to **4 devices at the same time**, each with its
   own live spectrum, waterfall, audio and decoder data. A fifth device is told the radio has too many controllers
   connected and can join as soon as one of the four disconnects. The limit is deliberately cautious rather than a
@@ -863,7 +893,7 @@ are supported.
 - Android Studio Hedgehog (2023.1.1) or newer
 - Android SDK 34, NDK 25+
 - Gradle 8.2+
-- Physical Android device with **USB Host** support (API 26+)
+- Physical Android device with **USB Host** support, running **Android 6.0 (API 23) or newer**
 - RTL-SDR V4 or V4L dongle + USB-C OTG adapter
 
 ### GNU Radio VOLK kernels
@@ -969,7 +999,7 @@ cd 9GRadio
 ./gradlew installDebug
 
 # Build release APK (requires signing config)
-# Output: app/build/outputs/apk/release/9GRadio_v1.83_release.apk
+# Output: app/build/outputs/apk/release/9GRadio_v1.85_release.apk
 ./gradlew assembleRelease
 ```
 
@@ -1064,7 +1094,7 @@ cd 9GRadio
 │       │   │   ├── RigWire.kt              # Link frame format (HELLO/DATA/AUTH/SEALED)
 │       │   │   ├── RigProtocol.kt          # Mirrored settings, commands, validation, message builders
 │       │   │   ├── RigStateReconciler.kt   # Controller side: keeps the user's just-made edits from being undone by a stale radio reading
-│       │   │   ├── RigStreams.kt           # Spectrum quantiser + audio packer (16 kHz mono PCM)
+│       │   │   ├── RigStreams.kt           # Spectrum quantiser + audio packer (16 kHz mono PCM, or 32 kHz interleaved stereo for WFM Stereo)
 │       │   │   ├── RigDataCodec.kt         # Decoded AIS/ADS-B/ACARS/APRS/RDS/voice events <-> wire JSON (batched)
 │       │   │   ├── RigDataSource.kt        # Radio side: forwards the DSP engine's decoder output to controllers
 │       │   │   ├── RemoteDecoderFeed.kt    # Controller side: the radio's decoded data as flows the tabs collect
